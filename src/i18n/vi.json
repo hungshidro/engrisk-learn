@@ -1,0 +1,154 @@
+{
+  "app": {
+    "title": "EngRisk Learn",
+    "description": "Nền tảng học tiếng Anh trực tuyến",
+    "nav": {
+      "home": "Trang chủ",
+      "exercises": "Bài tập",
+      "create": "Tạo bài tập",
+      "login": "Đăng nhập",
+      "register": "Đăng ký",
+      "logout": "Đăng xuất",
+      "profile": "Hồ sơ"
+    },
+    "hero": {
+      "title": "Học Tiếng Anh Hiệu Quả",
+      "subtitle": "Nâng cao kỹ năng tiếng Anh với bài tập tương tác, từ vựng phong phú và luyện nghe chuyên sâu",
+      "cta": "Bắt đầu ngay",
+      "exploreCta": "Khám phá bài tập"
+    },
+    "features": {
+      "quiz": {
+        "title": "Trắc nghiệm",
+        "description": "Luyện tập với câu hỏi nhiều lựa chọn và điền vào chỗ trống"
+      },
+      "listening": {
+        "title": "Luyện nghe",
+        "description": "Nâng cao kỹ năng nghe với bài tập audio và text-to-speech"
+      },
+      "vocabulary": {
+        "title": "Từ vựng",
+        "description": "Mở rộng vốn từ với từ vựng đi kèm mỗi bài tập"
+      },
+      "progress": {
+        "title": "Theo dõi tiến độ",
+        "description": "Lưu bài làm dở và xem kết quả chi tiết sau khi hoàn thành"
+      }
+    },
+    "auth": {
+      "login": "Đăng nhập",
+      "register": "Đăng ký",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "confirmPassword": "Xác nhận mật khẩu",
+      "name": "Họ tên",
+      "loginTitle": "Chào mừng trở lại",
+      "loginSubtitle": "Đăng nhập để tiếp tục học",
+      "registerTitle": "Tạo tài khoản",
+      "registerSubtitle": "Bắt đầu hành trình học tiếng Anh",
+      "noAccount": "Chưa có tài khoản?",
+      "hasAccount": "Đã có tài khoản?",
+      "loginError": "Email hoặc mật khẩu không đúng",
+      "registerError": "Đã có lỗi xảy ra khi đăng ký",
+      "emailExists": "Email đã được sử dụng",
+      "passwordMismatch": "Mật khẩu không khớp"
+    },
+    "exercise": {
+      "create": "Tạo bài tập",
+      "edit": "Chỉnh sửa",
+      "delete": "Xóa",
+      "title": "Tiêu đề",
+      "description": "Mô tả",
+      "type": "Loại bài tập",
+      "quiz": "Trắc nghiệm",
+      "listening": "Luyện nghe",
+      "mixed": "Kết hợp",
+      "questions": "Câu hỏi",
+      "question": "Câu hỏi",
+      "addQuestion": "Thêm câu hỏi",
+      "removeQuestion": "Xóa câu hỏi",
+      "questionType": "Loại câu hỏi",
+      "multipleChoice": "Chọn đáp án",
+      "fillInBlank": "Điền vào chỗ trống",
+      "option": "Lựa chọn",
+      "addOption": "Thêm lựa chọn",
+      "correctAnswer": "Đáp án đúng",
+      "explanation": "Giải thích",
+      "vocabulary": "Từ vựng",
+      "addVocabulary": "Thêm từ vựng",
+      "word": "Từ",
+      "meaning": "Nghĩa",
+      "pronunciation": "Phát âm",
+      "exampleSentence": "Câu ví dụ",
+      "publish": "Xuất bản",
+      "saveDraft": "Lưu nháp",
+      "audioUrl": "URL Audio",
+      "uploadAudio": "Tải lên audio",
+      "ttsText": "Văn bản đọc",
+      "ttsType": "Loại văn bản",
+      "paragraph": "Đoạn văn",
+      "conversation": "Cuộc hội thoại",
+      "noExercises": "Chưa có bài tập nào",
+      "allTypes": "Tất cả",
+      "searchPlaceholder": "Tìm kiếm bài tập...",
+      "by": "bởi",
+      "questionsCount": "câu hỏi",
+      "vocabCount": "từ vựng",
+      "startExercise": "Bắt đầu làm bài",
+      "continueExercise": "Tiếp tục làm bài",
+      "viewVocabulary": "Xem từ vựng",
+      "hideVocabulary": "Ẩn từ vựng",
+      "importQuestions": "Import câu hỏi",
+      "importVocab": "Import từ vựng",
+      "importQuestionsPlaceholder": "Q: Câu hỏi?\nA: Đáp án đúng *\nA: Đáp án sai\nA: Đáp án sai\n\nQ: Điền vào chỗ trống (fill)\nA: đáp án",
+      "importVocabPlaceholder": "apple - quả táo\nbanana - quả chuối - /bəˈnæn.ə/ - I like bananas",
+      "importBtn": "Import",
+      "importManual": "Nhập thủ công",
+      "importText": "Import bằng text",
+      "importQuestionsFormat": "Mỗi câu hỏi bắt đầu bằng Q:, đáp án bằng A: (thêm * cho đáp án đúng). Thêm (fill) sau Q: cho câu điền.",
+      "importVocabFormat": "Mỗi dòng 1 từ: từ - nghĩa - phát âm (tùy chọn) - ví dụ (tùy chọn)",
+      "importSuccess": "Import thành công!"
+    },
+    "attempt": {
+      "saveProgress": "Lưu tiến độ",
+      "submit": "Nộp bài",
+      "confirmSubmit": "Bạn có chắc muốn nộp bài? Bạn không thể thay đổi câu trả lời sau khi nộp.",
+      "confirm": "Xác nhận",
+      "cancel": "Hủy",
+      "progress": "Tiến độ",
+      "saved": "Đã lưu tiến độ thành công!",
+      "submitted": "Đã nộp bài thành công!",
+      "fillInPlaceholder": "Nhập đáp án...",
+      "questionOf": "Câu {current} / {total}"
+    },
+    "result": {
+      "title": "Kết quả bài tập",
+      "score": "Điểm số",
+      "correct": "Đúng",
+      "incorrect": "Sai",
+      "yourAnswer": "Câu trả lời của bạn",
+      "correctAnswer": "Đáp án đúng",
+      "noAnswer": "Chưa trả lời",
+      "retry": "Làm lại",
+      "backToExercises": "Quay lại danh sách",
+      "explanation": "Giải thích"
+    },
+    "tts": {
+      "speak": "Đọc",
+      "stop": "Dừng",
+      "speed": "Tốc độ"
+    },
+    "common": {
+      "loading": "Đang tải...",
+      "error": "Đã có lỗi xảy ra",
+      "success": "Thành công",
+      "next": "Tiếp",
+      "previous": "Trước",
+      "save": "Lưu",
+      "cancel": "Hủy",
+      "delete": "Xóa",
+      "back": "Quay lại",
+      "step": "Bước"
+    }
+  }
+}

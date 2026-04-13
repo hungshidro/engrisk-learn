@@ -1,0 +1,154 @@
+{
+  "app": {
+    "title": "EngRisk Learn",
+    "description": "Online English Learning Platform",
+    "nav": {
+      "home": "Home",
+      "exercises": "Exercises",
+      "create": "Create Exercise",
+      "login": "Login",
+      "register": "Register",
+      "logout": "Logout",
+      "profile": "Profile"
+    },
+    "hero": {
+      "title": "Learn English Effectively",
+      "subtitle": "Improve your English skills with interactive exercises, rich vocabulary, and intensive listening practice",
+      "cta": "Get Started",
+      "exploreCta": "Explore Exercises"
+    },
+    "features": {
+      "quiz": {
+        "title": "Quiz",
+        "description": "Practice with multiple choice questions and fill-in-the-blank exercises"
+      },
+      "listening": {
+        "title": "Listening",
+        "description": "Enhance listening skills with audio exercises and text-to-speech"
+      },
+      "vocabulary": {
+        "title": "Vocabulary",
+        "description": "Expand your vocabulary with words included in each exercise"
+      },
+      "progress": {
+        "title": "Track Progress",
+        "description": "Save your work and view detailed results after completion"
+      }
+    },
+    "auth": {
+      "login": "Login",
+      "register": "Register",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "name": "Full Name",
+      "loginTitle": "Welcome Back",
+      "loginSubtitle": "Sign in to continue learning",
+      "registerTitle": "Create Account",
+      "registerSubtitle": "Start your English learning journey",
+      "noAccount": "Don't have an account?",
+      "hasAccount": "Already have an account?",
+      "loginError": "Invalid email or password",
+      "registerError": "An error occurred during registration",
+      "emailExists": "Email is already in use",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "exercise": {
+      "create": "Create Exercise",
+      "edit": "Edit",
+      "delete": "Delete",
+      "title": "Title",
+      "description": "Description",
+      "type": "Exercise Type",
+      "quiz": "Quiz",
+      "listening": "Listening",
+      "mixed": "Mixed",
+      "questions": "Questions",
+      "question": "Question",
+      "addQuestion": "Add Question",
+      "removeQuestion": "Remove Question",
+      "questionType": "Question Type",
+      "multipleChoice": "Multiple Choice",
+      "fillInBlank": "Fill in the Blank",
+      "option": "Option",
+      "addOption": "Add Option",
+      "correctAnswer": "Correct Answer",
+      "explanation": "Explanation",
+      "vocabulary": "Vocabulary",
+      "addVocabulary": "Add Vocabulary",
+      "word": "Word",
+      "meaning": "Meaning",
+      "pronunciation": "Pronunciation",
+      "exampleSentence": "Example Sentence",
+      "publish": "Publish",
+      "saveDraft": "Save Draft",
+      "audioUrl": "Audio URL",
+      "uploadAudio": "Upload Audio",
+      "ttsText": "Text to Read",
+      "ttsType": "Text Type",
+      "paragraph": "Paragraph",
+      "conversation": "Conversation",
+      "noExercises": "No exercises yet",
+      "allTypes": "All",
+      "searchPlaceholder": "Search exercises...",
+      "by": "by",
+      "questionsCount": "questions",
+      "vocabCount": "vocabulary",
+      "startExercise": "Start Exercise",
+      "continueExercise": "Continue Exercise",
+      "viewVocabulary": "View Vocabulary",
+      "hideVocabulary": "Hide Vocabulary",
+      "importQuestions": "Import Questions",
+      "importVocab": "Import Vocabulary",
+      "importQuestionsPlaceholder": "Q: Question?\nA: Correct answer *\nA: Wrong answer\nA: Wrong answer\n\nQ: Fill in the blank (fill)\nA: answer",
+      "importVocabPlaceholder": "apple - fruit\nbanana - tropical fruit - /bəˈnæn.ə/ - I like bananas",
+      "importBtn": "Import",
+      "importManual": "Manual Input",
+      "importText": "Import from Text",
+      "importQuestionsFormat": "Each question starts with Q:, answers with A: (add * for correct). Add (fill) after Q: for fill-in-blank.",
+      "importVocabFormat": "One word per line: word - meaning - pronunciation (optional) - example (optional)",
+      "importSuccess": "Imported successfully!"
+    },
+    "attempt": {
+      "saveProgress": "Save Progress",
+      "submit": "Submit",
+      "confirmSubmit": "Are you sure you want to submit? You cannot change your answers after submission.",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "progress": "Progress",
+      "saved": "Progress saved successfully!",
+      "submitted": "Submitted successfully!",
+      "fillInPlaceholder": "Enter your answer...",
+      "questionOf": "Question {current} / {total}"
+    },
+    "result": {
+      "title": "Exercise Results",
+      "score": "Score",
+      "correct": "Correct",
+      "incorrect": "Incorrect",
+      "yourAnswer": "Your Answer",
+      "correctAnswer": "Correct Answer",
+      "noAnswer": "No Answer",
+      "retry": "Retry",
+      "backToExercises": "Back to Exercises",
+      "explanation": "Explanation"
+    },
+    "tts": {
+      "speak": "Speak",
+      "stop": "Stop",
+      "speed": "Speed"
+    },
+    "common": {
+      "loading": "Loading...",
+      "error": "An error occurred",
+      "success": "Success",
+      "next": "Next",
+      "previous": "Previous",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "back": "Back",
+      "step": "Step"
+    }
+  }
+}
