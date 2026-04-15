@@ -70,6 +70,9 @@ export default function CreateExercisePage() {
   const [questionInputMode, setQuestionInputMode] = useState<"manual" | "import">("manual");
   const [questionImportText, setQuestionImportText] = useState("");
 
+  const [audioInputMode, setAudioInputMode] = useState<"manual" | "import">("manual");
+  const [audioImportText, setAudioImportText] = useState("");
+
   useEffect(() => {
     if (!hasListening) {
       setQuestions((prev) => prev.map((q) => ({ ...q, audioIndex: null })));
@@ -110,6 +113,45 @@ export default function CreateExercisePage() {
           return q;
         })
       );
+    }
+  };
+
+  const handleImportAudios = () => {
+    if (!audioImportText.trim()) return;
+    
+    // Split by [AUDIO*] tag
+    const blocks = audioImportText.split(/(?=\[\s*AUDIO\b.*?\])/i).filter((b) => b.trim());
+    const newAudios: AudioEntry[] = [];
+
+    for (const block of blocks) {
+      let ttsText = block.trim();
+      let ttsType = "paragraph";
+      
+      const match = ttsText.match(/^\[\s*AUDIO\b(?::(conversation|paragraph))?\s*\]/i);
+      if (match) {
+        if (match[1]) ttsType = match[1].toLowerCase();
+        ttsText = ttsText.substring(match[0].length).trim();
+      }
+
+      newAudios.push({
+        title: "",
+        audioUrl: "",
+        ttsText,
+        ttsType,
+        uploading: false,
+      });
+    }
+
+    if (newAudios.length > 0) {
+      setAudios((prev) => {
+        // If there's only one empty audio, replace it, else append
+        if (prev.length === 1 && !prev[0].audioUrl && !prev[0].ttsText) {
+          return newAudios;
+        }
+        return [...prev, ...newAudios];
+      });
+      setAudioInputMode("manual");
+      setAudioImportText("");
     }
   };
 
@@ -214,14 +256,18 @@ export default function CreateExercisePage() {
 
     const parsed: Question[] = [];
     let maxAudioIndex = -1;
-    const blocks = questionImportText.split(/\n\s*\n/); // Split by empty lines
+    
+    // Split text into blocks starting with "Q:"
+    const blocks = questionImportText
+      .split(/(?=(?:^|\n)\s*Q:)/i)
+      .map((b) => b.trim())
+      .filter((b) => b.toUpperCase().startsWith("Q:"));
 
     for (const block of blocks) {
-      const lines = block.trim().split("\n").filter((l) => l.trim());
+      const lines = block.split("\n").map((l) => l.trim()).filter((l) => l !== "");
       if (lines.length === 0) continue;
 
       const questionLine = lines[0];
-      if (!questionLine.startsWith("Q:")) continue;
 
       const qContent = questionLine.slice(2).trim();
       const isFill = /\(fill\)/i.test(qContent);
@@ -538,17 +584,64 @@ export default function CreateExercisePage() {
           {/* Listening: Multiple Audio entries */}
           {hasListening && (
             <div className="space-y-3 animate-slide-in">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="font-medium text-sm">🎧 Bài nghe ({audios.length})</h3>
-                <button onClick={addAudio} className="btn-secondary text-xs">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Thêm bài nghe
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setAudioInputMode(audioInputMode === "manual" ? "import" : "manual")}
+                    className="btn-secondary text-xs bg-surface"
+                  >
+                    {audioInputMode === "manual" ? (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Import từ văn bản
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Nhập thủ công
+                      </>
+                    )}
+                  </button>
+                  {audioInputMode === "manual" && (
+                    <button onClick={addAudio} className="btn-secondary text-xs">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Thêm bài nghe
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {audios.map((audio, aIndex) => (
+              {/* Audio Import Mode */}
+              {audioInputMode === "import" && (
+                <div className="glass p-5 space-y-3 mb-4">
+                  <p className="text-xs text-muted">Dán kịch bản bài nghe của bạn vào đây. Có thể sử dụng thẻ <code>[AUDIO:conversation]</code> hoặc <code>[AUDIO:paragraph]</code> để phân tách và định dạng nhiều bài nghe cùng lúc.</p>
+                  <textarea
+                    value={audioImportText}
+                    onChange={(e) => setAudioImportText(e.target.value)}
+                    className="w-full !min-h-[150px] font-mono text-sm"
+                    placeholder="[AUDIO:conversation]\nA: Hello!\nB: Hi there!\n\n[AUDIO:paragraph]\nThis is a long passage..."
+                  />
+                  <button
+                    onClick={handleImportAudios}
+                    disabled={!audioImportText.trim()}
+                    className="btn-primary text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Import bài nghe
+                  </button>
+                </div>
+              )}
+
+              {audioInputMode === "manual" && audios.map((audio, aIndex) => (
                 <div key={aIndex} className="p-4 rounded-xl border border-border bg-surface/50 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-secondary">Bài nghe {aIndex + 1}</span>
