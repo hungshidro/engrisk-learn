@@ -733,7 +733,7 @@ export default function CreateExercisePage() {
             </div>
           )}
 
-          <div className="flex justify-end">
+          <div className="sticky bottom-4 z-50 flex justify-end items-center bg-surface/90 backdrop-blur-md p-4 rounded-2xl border border-border shadow-lg mt-8">
             <button onClick={() => setStep(2)} className="btn-primary" disabled={!title.trim()}>
               {t.common.next} →
             </button>
@@ -980,7 +980,7 @@ export default function CreateExercisePage() {
             </div>
           ))}
 
-          <div className="flex justify-between">
+          <div className="sticky bottom-4 z-50 flex justify-between items-center bg-surface/90 backdrop-blur-md p-4 rounded-2xl border border-border shadow-lg mt-8">
             <button onClick={() => setStep(1)} className="btn-secondary">
               ← {t.common.previous}
             </button>
@@ -1142,7 +1142,7 @@ export default function CreateExercisePage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2">
+            <div className="sticky bottom-4 z-50 flex flex-col sm:flex-row justify-between items-center gap-3 bg-surface/90 backdrop-blur-md p-4 rounded-2xl border border-border shadow-lg mt-8">
               <button onClick={() => setStep(2)} className="btn-secondary">
                 ← {t.common.previous}
               </button>
