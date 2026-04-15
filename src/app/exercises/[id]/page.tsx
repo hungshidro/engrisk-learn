@@ -68,10 +68,19 @@ export default function ExerciseDetailPage({
   const [showVocab, setShowVocab] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startingVocab, setStartingVocab] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     fetchExercise();
   }, [id]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const fetchExercise = async () => {
     try {
@@ -157,209 +166,380 @@ export default function ExerciseDetailPage({
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back */}
       <Link
         href="/exercises"
         className="text-muted hover:text-foreground text-sm flex items-center gap-1 mb-6 transition-colors"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
         {t.common.back}
       </Link>
 
-      {/* Header */}
-      <div className="glass p-8 mb-6 animate-fade-in-up">
-        <div className="flex items-start justify-between mb-4">
-          <span className={`badge ${exercise.type === "quiz" ? "badge-quiz" : exercise.type === "listening" ? "badge-listening" : "badge-quiz"}`}>
-            {exercise.type === "quiz" ? t.exercise.quiz : exercise.type === "listening" ? t.exercise.listening : t.exercise.mixed}
-          </span>
-          <span className="text-xs text-muted">
-            {t.exercise.by} {exercise.author.name}
-          </span>
-        </div>
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Main Content (Left Column) */}
+        <div className="flex-1 space-y-6">
+          {/* Header */}
+          <div className="glass p-8 animate-fade-in-up">
+            <div className="flex items-start justify-between mb-4">
+              <span
+                className={`badge ${exercise.type === "quiz" ? "badge-quiz" : exercise.type === "listening" ? "badge-listening" : "badge-quiz"}`}
+              >
+                {exercise.type === "quiz"
+                  ? t.exercise.quiz
+                  : exercise.type === "listening"
+                    ? t.exercise.listening
+                    : t.exercise.mixed}
+              </span>
+              <span className="text-xs text-muted">
+                {t.exercise.by} {exercise.author.name}
+              </span>
+            </div>
 
-        <h1 className="text-3xl font-bold mb-3">{exercise.title}</h1>
-        {exercise.description && (
-          <p className="text-muted mb-6">{exercise.description}</p>
-        )}
+            <h1 className="text-3xl font-bold mb-3">{exercise.title}</h1>
+            {exercise.description && (
+              <p className="text-muted mb-6">{exercise.description}</p>
+            )}
 
-        <div className="flex items-center gap-6 text-sm text-muted mb-6">
-          <span className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {exercise.questions.length} {t.exercise.questionsCount}
-          </span>
-          <span className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            {exercise.vocabularies.length} {t.exercise.vocabCount}
-          </span>
-        </div>
-
-        {/* Audio Player or TTS */}
-        {(exercise.type === "listening" || exercise.type === "mixed") && (
-          <div className="space-y-3 mb-6">
-            {/* New multi-audio entries */}
-            {exercise.audios && exercise.audios.length > 0 ? (
-              exercise.audios.map((audio, i) => (
-                <div key={audio.id} className="p-4 rounded-xl bg-surface/50 border border-border flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    </svg>
-                    <span className="text-sm font-medium">
-                      {audio.title || (exercise.audios.length > 1 ? `Bài nghe ${i + 1}` : "Bài nghe")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {audio.audioUrl && (
-                      <audio controls className="h-8" src={audio.audioUrl}>
-                        Your browser does not support audio.
-                      </audio>
-                    )}
-                    {audio.ttsText && (
-                      <button
-                        onClick={() => handleSpeak(audio.ttsText!, audio.ttsType)}
-                        className="btn-secondary text-xs !py-1.5 !px-3"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        </svg>
-                        {t.tts.speak}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              /* Legacy fallback */
-              <div className="p-4 rounded-xl bg-surface/50 border border-border flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                  <span className="text-sm font-medium">Bài nghe</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {exercise.audioUrl && (
-                    <audio controls className="h-8" src={exercise.audioUrl}>
-                      Your browser does not support audio.
-                    </audio>
-                  )}
-                  {exercise.ttsText && (
-                    <button
-                      onClick={() => handleSpeak(exercise.ttsText!, exercise.ttsType)}
-                      className="btn-secondary text-xs !py-1.5 !px-3"
+            {/* Audio Player or TTS */}
+            {(exercise.type === "listening" || exercise.type === "mixed") && (
+              <div className="space-y-3 mb-6">
+                {/* New multi-audio entries */}
+                {exercise.audios && exercise.audios.length > 0 ? (
+                  exercise.audios.map((audio, i) => (
+                    <div
+                      key={audio.id}
+                      className="p-4 rounded-xl bg-surface/50 border border-border flex items-center justify-between"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <div className="flex items-center gap-2">
+                        <svg
+                          className="w-5 h-5 text-secondary"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                          />
+                        </svg>
+                        <span className="text-sm font-medium">
+                          {audio.title ||
+                            (exercise.audios.length > 1
+                              ? `Bài nghe ${i + 1}`
+                              : "Bài nghe")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {audio.audioUrl && (
+                          <audio controls className="h-8" src={audio.audioUrl}>
+                            Your browser does not support audio.
+                          </audio>
+                        )}
+                        {audio.ttsText && (
+                          <button
+                            onClick={() =>
+                              handleSpeak(audio.ttsText!, audio.ttsType)
+                            }
+                            className="btn-secondary text-xs !py-1.5 !px-3"
+                          >
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                              />
+                            </svg>
+                            {t.tts.speak}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  /* Legacy fallback */
+                  <div className="p-4 rounded-xl bg-surface/50 border border-border flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5 text-secondary"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                        />
                       </svg>
-                      {t.tts.speak}
-                    </button>
-                  )}
-                </div>
+                      <span className="text-sm font-medium">Bài nghe</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {exercise.audioUrl && (
+                        <audio controls className="h-8" src={exercise.audioUrl}>
+                          Your browser does not support audio.
+                        </audio>
+                      )}
+                      {exercise.ttsText && (
+                        <button
+                          onClick={() =>
+                            handleSpeak(exercise.ttsText!, exercise.ttsType)
+                          }
+                          className="btn-secondary text-xs !py-1.5 !px-3"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                            />
+                          </svg>
+                          {t.tts.speak}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
 
-        <button
-          onClick={handleStart}
-          disabled={starting}
-          className="btn-primary text-lg !px-8 !py-3 glow"
-        >
-          {starting ? (
-            <div className="spinner !w-5 !h-5 !border-2 !border-white/30 !border-t-white" />
-          ) : (
-            <>
-              {t.exercise.startExercise}
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </>
-          )}
-        </button>
-
-        {/* Vocab Practice Button */}
-        {exercise.vocabularies.length > 0 && (
-          <button
-            onClick={handleStartVocab}
-            disabled={startingVocab}
-            className="btn-secondary text-lg !px-8 !py-3 ml-3"
-          >
-            {startingVocab ? (
-              <div className="spinner !w-5 !h-5 !border-2" />
-            ) : (
-              <>
-                📚 {t.vocabPractice.startVocab}
-              </>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Vocabulary Section */}
-      {exercise.vocabularies.length > 0 && (
-        <div className="glass p-6 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-          <button
-            onClick={() => setShowVocab(!showVocab)}
-            className="w-full flex items-center justify-between text-left"
-          >
-            <h2 className="text-lg font-semibold">
-              📚 {t.exercise.vocabulary} ({exercise.vocabularies.length})
-            </h2>
-            <svg
-              className={`w-5 h-5 text-muted transition-transform ${showVocab ? "rotate-180" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {/* Vocabulary Section */}
+          {exercise.vocabularies.length > 0 && (
+            <div
+              className="glass p-6 animate-fade-in-up"
+              style={{ animationDelay: "0.1s" }}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {showVocab && (
-            <div className="mt-4 space-y-3 animate-slide-in">
-              {exercise.vocabularies.map((vocab) => (
-                <div
-                  key={vocab.id}
-                  className="p-4 rounded-xl bg-surface/50 border border-border flex flex-col sm:flex-row sm:items-center gap-2"
+              <button
+                onClick={() => setShowVocab(!showVocab)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <h2 className="text-lg font-semibold">
+                  📚 {t.exercise.vocabulary} ({exercise.vocabularies.length})
+                </h2>
+                <svg
+                  className={`w-5 h-5 text-muted transition-transform ${showVocab ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-primary">{vocab.word}</span>
-                      {vocab.pronunciation && (
-                        <span className="text-xs text-muted">{vocab.pronunciation}</span>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {showVocab && (
+                <div className="mt-4 space-y-3 animate-slide-in">
+                  {exercise.vocabularies.map((vocab) => (
+                    <div
+                      key={vocab.id}
+                      className="p-4 rounded-xl bg-surface/50 border border-border flex flex-col sm:flex-row sm:items-center gap-2"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-primary">
+                            {vocab.word}
+                          </span>
+                          {vocab.pronunciation && (
+                            <span className="text-xs text-muted">
+                              {vocab.pronunciation}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleSpeak(vocab.word)}
+                            className="text-muted hover:text-primary transition-colors"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="text-sm text-muted">
+                          {vocab.meaning}
+                        </div>
+                      </div>
+                      {vocab.exampleSentence && (
+                        <div className="text-xs text-muted italic sm:text-right">
+                          &ldquo;{vocab.exampleSentence}&rdquo;
+                        </div>
                       )}
-                      <button
-                        onClick={() => handleSpeak(vocab.word)}
-                        className="text-muted hover:text-primary transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                        </svg>
-                      </button>
                     </div>
-                    <div className="text-sm text-muted">{vocab.meaning}</div>
-                  </div>
-                  {vocab.exampleSentence && (
-                    <div className="text-xs text-muted italic sm:text-right">
-                      &ldquo;{vocab.exampleSentence}&rdquo;
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
-      )}
 
-      {session && (
-        <ExerciseFollowers exerciseId={exercise.id} />
+        {/* Sidebar (Right Column) */}
+        <div className="w-full lg:w-80 shrink-0">
+          <div
+            className="sticky top-24 glass p-6 space-y-4 animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            <h3 className="font-semibold text-lg border-b border-border pb-3">
+              {t.common.overview || "Tổng quan"}
+            </h3>
+
+            <div className="space-y-3 py-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted flex items-center gap-1.5">
+                  <svg
+                    className="w-4 h-4 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  {t.exercise.questionsCount}
+                </span>
+                <span className="font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                  {exercise.questions.length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted flex items-center gap-1.5">
+                  <svg
+                    className="w-4 h-4 text-secondary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                  {t.exercise.vocabCount}
+                </span>
+                <span className="font-medium text-secondary bg-secondary/10 px-2 py-0.5 rounded-md">
+                  {exercise.vocabularies.length}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleStart}
+              disabled={starting}
+              className="w-full btn-primary text-base justify-center !py-3 glow"
+            >
+              {starting ? (
+                <div className="spinner !w-5 !h-5 !border-2 !border-white/30 !border-t-white" />
+              ) : (
+                <>
+                  {t.exercise.startExercise}
+                  <svg
+                    className="w-5 h-5 ml-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </>
+              )}
+            </button>
+
+            {exercise.vocabularies.length > 0 && (
+              <button
+                onClick={handleStartVocab}
+                disabled={startingVocab}
+                className="w-full btn-secondary text-base justify-center !py-3 mt-3"
+              >
+                {startingVocab ? (
+                  <div className="spinner !w-5 !h-5 !border-2" />
+                ) : (
+                  <>📚 {t.vocabPractice.startVocab}</>
+                )}
+              </button>
+            )}
+
+            {session && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <ExerciseFollowers
+                  exerciseId={exercise.id}
+                  totalQuestions={exercise.questions.length}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Scroll to top button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center animate-fade-in-up"
+          aria-label="Scroll to top"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 15l7-7 7 7"
+            />
+          </svg>
+        </button>
       )}
     </div>
   );

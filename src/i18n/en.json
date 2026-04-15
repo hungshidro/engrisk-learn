@@ -194,7 +194,8 @@
       "cancel": "Cancel",
       "delete": "Delete",
       "back": "Back",
-      "step": "Step"
+      "step": "Step",
+      "overview": "Overview"
     }
   }
 }

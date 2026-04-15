@@ -14,8 +14,10 @@ interface FriendProgress {
 
 export default function ExerciseFollowers({
   exerciseId,
+  totalQuestions,
 }: {
   exerciseId: string;
+  totalQuestions: number;
 }) {
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
@@ -27,6 +29,7 @@ export default function ExerciseFollowers({
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchFriendTerm, setSearchFriendTerm] = useState("");
+  const [expandedSection, setExpandedSection] = useState<"me" | "followers" | "following" | null>("me");
 
   const fetchFollowerData = async () => {
     try {
@@ -88,193 +91,251 @@ export default function ExerciseFollowers({
   if (isLoading) return null;
 
   return (
-    <div
-      className="mt-8 glass p-6 animate-fade-in-up"
-      style={{ animationDelay: "0.2s" }}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold">
           {locale === "vi" ? "Cùng học với bạn bè" : "Learn with Friends"}
-        </h2>
+        </h3>
         <button
           onClick={() => setShowModal(true)}
-          className="btn-secondary !py-1.5 text-sm"
+          className="btn-secondary !py-1 !px-2 text-xs"
         >
-          {locale === "vi" ? "Chia sẻ / Thêm" : "Share / Add"}
+          {locale === "vi" ? "Thêm" : "Add"}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <h3 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
-            {locale === "vi" ? "Tiến độ của bạn" : "Your progress"}
-          </h3>
-          {!me ? (
-            <p className="text-sm text-muted italic">
-              {locale === "vi" ? "Chưa có tiến độ" : "No progress yet"}
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              <li className="p-3 rounded-lg bg-surface/50 border border-border hover:bg-surface/80 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                      {me.name[0]}
+      <div className="space-y-3">
+        {/* Accordion 1: Me */}
+        <div className="border border-border rounded-xl bg-surface/30 overflow-hidden transition-all">
+          <button
+            onClick={() => setExpandedSection(expandedSection === "me" ? null : "me")}
+            className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface/80 transition-colors"
+          >
+            <h3 className="font-semibold flex items-center gap-2 text-sm">
+              ⭐ {locale === "vi" ? "Tiến độ của bạn" : "Your progress"}
+              {me && me.attempts && me.attempts.length > 0 && (
+                <span className="text-xs font-normal bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  {me.attempts[0].score}/{totalQuestions}
+                </span>
+              )}
+            </h3>
+            <svg
+              className={`w-5 h-5 text-muted transition-transform ${expandedSection === "me" ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {expandedSection === "me" && (
+            <div className="p-4 border-t border-border animate-slide-in">
+              {!me ? (
+                <p className="text-sm text-muted italic">
+                  {locale === "vi" ? "Chưa có tiến độ" : "No progress yet"}
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  <li className="p-3 rounded-lg bg-surface flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                        {me.name[0]}
+                      </div>
+                      <span className="text-sm font-medium">{me.name} (Bạn)</span>
                     </div>
-                    <span className="text-sm font-medium">{me.name} (Bạn)</span>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {me.attempts && me.attempts.length > 0 ? (
-                      <Link
-                        href={`/exercises/${exerciseId}/attempt/${me.attempts[0].id}/result`}
-                        className={`text-xs px-2 py-0.5 rounded-full ${me.attempts[0].status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
-                      >
-                        {locale === "vi" ? "Bài tập" : "Exercise"}: {me.attempts[0].status === "completed"
-                          ? `${me.attempts[0].score}/${me.attempts[0].totalQuestions}`
-                          : locale === "vi" ? "Đang làm" : "In Progress"}
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-muted">
-                        {locale === "vi" ? "Chưa làm bài" : "No exercise"}
-                      </span>
-                    )}
-                    {me.vocabAttempts && me.vocabAttempts.length > 0 ? (
-                      <Link
-                        href={`/exercises/${exerciseId}/vocab/${me.vocabAttempts[0].id}/result`}
-                        className={`text-xs px-2 py-0.5 rounded-full ${me.vocabAttempts[0].status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
-                      >
-                        {locale === "vi" ? "Từ vựng" : "Vocab"}: {me.vocabAttempts[0].status === "completed"
-                          ? `${me.vocabAttempts[0].score}/${me.vocabAttempts[0].totalItems}`
-                          : locale === "vi" ? "Đang làm" : "In Progress"}
-                      </Link>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            </ul>
-          )}
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
-            {locale === "vi" ? "Đang theo dõi bạn" : "Tracking your progress"}
-          </h3>
-          {followers.length === 0 ? (
-            <p className="text-sm text-muted italic">
-              {locale === "vi" ? "Chưa có ai" : "No one yet"}
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {followers.map((u) => {
-                const latestAttempt =
-                  u.attempts && u.attempts.length > 0 ? u.attempts[0] : null;
-                const latestVocab =
-                  u.vocabAttempts && u.vocabAttempts.length > 0 ? u.vocabAttempts[0] : null;
-                return (
-                  <li
-                    key={u.id}
-                    className="p-3 rounded-lg bg-surface/50 border border-border hover:bg-surface/80 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                          {u.name[0]}
-                        </div>
-                        <span className="text-sm font-medium">{u.name}</span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {/* Exercise attempt */}
-                        {latestAttempt ? (
-                          <Link
-                            href={`/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`}
-                            className={`text-xs px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
-                          >
-                            {locale === "vi" ? "Bài tập" : "Exercise"}: {latestAttempt.status === "completed"
-                              ? `${latestAttempt.score}/${latestAttempt.totalQuestions}`
-                              : locale === "vi" ? "Đang làm" : "In Progress"}
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-muted">
-                            {locale === "vi" ? "Chưa làm bài" : "No exercise"}
-                          </span>
-                        )}
-                        {/* Vocab attempt */}
-                        {latestVocab ? (
-                          <Link
-                            href={`/exercises/${exerciseId}/vocab/${latestVocab.id}/result`}
-                            className={`text-xs px-2 py-0.5 rounded-full ${latestVocab.status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
-                          >
-                            {locale === "vi" ? "Từ vựng" : "Vocab"}: {latestVocab.status === "completed"
-                              ? `${latestVocab.score}/${latestVocab.totalItems}`
-                              : locale === "vi" ? "Đang làm" : "In Progress"}
-                          </Link>
-                        ) : null}
-                      </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {me.attempts && me.attempts.length > 0 ? (
+                        <Link
+                          href={`/exercises/${exerciseId}/attempt/${me.attempts[0].id}/result`}
+                          className={`text-xs px-2 py-0.5 rounded-full ${me.attempts[0].status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
+                        >
+                          {locale === "vi" ? "Bài tập" : "Exercise"}: {me.attempts[0].status === "completed"
+                            ? `${me.attempts[0].score}/${me.attempts[0].totalQuestions}`
+                            : locale === "vi" ? "Đang làm" : "In Progress"}
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-muted">
+                          {locale === "vi" ? "Chưa làm bài" : "No exercise"}
+                        </span>
+                      )}
+                      {me.vocabAttempts && me.vocabAttempts.length > 0 ? (
+                        <Link
+                          href={`/exercises/${exerciseId}/vocab/${me.vocabAttempts[0].id}/result`}
+                          className={`text-xs px-2 py-0.5 rounded-full ${me.vocabAttempts[0].status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
+                        >
+                          {locale === "vi" ? "Từ vựng" : "Vocab"}: {me.vocabAttempts[0].status === "completed"
+                            ? `${me.vocabAttempts[0].score}/${me.vocabAttempts[0].totalItems}`
+                            : locale === "vi" ? "Đang làm" : "In Progress"}
+                        </Link>
+                      ) : null}
                     </div>
                   </li>
-                );
-              })}
-            </ul>
+                </ul>
+              )}
+            </div>
           )}
         </div>
 
-        <div>
-          <h3 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
-            {locale === "vi" ? "Bạn đang theo dõi" : "You are tracking"}
-          </h3>
-          {following.length === 0 ? (
-            <p className="text-sm text-muted italic">
-              {locale === "vi" ? "Chưa theo dõi ai" : "Not tracking anyone"}
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {following.map((u) => {
-                const latestAttempt =
-                  u.attempts && u.attempts.length > 0 ? u.attempts[0] : null;
-                const latestVocab =
-                  u.vocabAttempts && u.vocabAttempts.length > 0 ? u.vocabAttempts[0] : null;
-                return (
-                  <li
-                    key={u.id}
-                    className="p-3 rounded-lg bg-surface/50 border border-border hover:bg-surface/80 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold text-sm">
-                          {u.name[0]}
+        {/* Accordion 2: Followers */}
+        <div className="border border-border rounded-xl bg-surface/30 overflow-hidden transition-all">
+          <button
+            onClick={() => setExpandedSection(expandedSection === "followers" ? null : "followers")}
+            className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface/80 transition-colors"
+          >
+            <h3 className="font-semibold flex items-center gap-2 text-sm">
+              👥 {locale === "vi" ? "Đang theo dõi bạn" : "Tracking your progress"}
+              <span className="text-xs font-normal bg-surface px-2 py-0.5 rounded-full border border-border">
+                {followers.length}
+              </span>
+            </h3>
+            <svg
+              className={`w-5 h-5 text-muted transition-transform ${expandedSection === "followers" ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {expandedSection === "followers" && (
+            <div className="p-4 border-t border-border animate-slide-in">
+              {followers.length === 0 ? (
+                <p className="text-sm text-muted italic">
+                  {locale === "vi" ? "Chưa có ai" : "No one yet"}
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {followers.map((u) => {
+                    const latestAttempt =
+                      u.attempts && u.attempts.length > 0 ? u.attempts[0] : null;
+                    const latestVocab =
+                      u.vocabAttempts && u.vocabAttempts.length > 0 ? u.vocabAttempts[0] : null;
+                    return (
+                      <li
+                        key={u.id}
+                        className="p-3 rounded-lg bg-surface flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                            {u.name[0]}
+                          </div>
+                          <span className="text-sm font-medium">{u.name}</span>
                         </div>
-                        <span className="text-sm font-medium">{u.name}</span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {latestAttempt ? (
-                          <Link
-                            href={`/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`}
-                            className={`text-xs px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
-                          >
-                            {locale === "vi" ? "Bài tập" : "Exercise"}: {latestAttempt.status === "completed"
-                              ? `${latestAttempt.score}/${latestAttempt.totalQuestions}`
-                              : locale === "vi" ? "Đang làm" : "In Progress"}
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-muted">
-                            {locale === "vi" ? "Chưa làm bài" : "No exercise"}
-                          </span>
-                        )}
-                        {latestVocab ? (
-                          <Link
-                            href={`/exercises/${exerciseId}/vocab/${latestVocab.id}/result`}
-                            className={`text-xs px-2 py-0.5 rounded-full ${latestVocab.status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
-                          >
-                            {locale === "vi" ? "Từ vựng" : "Vocab"}: {latestVocab.status === "completed"
-                              ? `${latestVocab.score}/${latestVocab.totalItems}`
-                              : locale === "vi" ? "Đang làm" : "In Progress"}
-                          </Link>
-                        ) : null}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                        <div className="flex flex-col items-end gap-1">
+                          {latestAttempt ? (
+                            <Link
+                              href={`/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`}
+                              className={`text-xs px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
+                            >
+                              {locale === "vi" ? "Bài tập" : "Exercise"}: {latestAttempt.status === "completed"
+                                ? `${latestAttempt.score}/${latestAttempt.totalQuestions}`
+                                : locale === "vi" ? "Đang làm" : "In Progress"}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted">
+                              {locale === "vi" ? "Chưa làm bài" : "No exercise"}
+                            </span>
+                          )}
+                          {latestVocab ? (
+                            <Link
+                              href={`/exercises/${exerciseId}/vocab/${latestVocab.id}/result`}
+                              className={`text-xs px-2 py-0.5 rounded-full ${latestVocab.status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
+                            >
+                              {locale === "vi" ? "Từ vựng" : "Vocab"}: {latestVocab.status === "completed"
+                                ? `${latestVocab.score}/${latestVocab.totalItems}`
+                                : locale === "vi" ? "Đang làm" : "In Progress"}
+                            </Link>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Accordion 3: Following */}
+        <div className="border border-border rounded-xl bg-surface/30 overflow-hidden transition-all">
+          <button
+            onClick={() => setExpandedSection(expandedSection === "following" ? null : "following")}
+            className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface/80 transition-colors"
+          >
+            <h3 className="font-semibold flex items-center gap-2 text-sm">
+              🎯 {locale === "vi" ? "Bạn đang theo dõi" : "You are tracking"}
+              <span className="text-xs font-normal bg-surface px-2 py-0.5 rounded-full border border-border">
+                {following.length}
+              </span>
+            </h3>
+            <svg
+              className={`w-5 h-5 text-muted transition-transform ${expandedSection === "following" ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {expandedSection === "following" && (
+            <div className="p-4 border-t border-border animate-slide-in">
+              {following.length === 0 ? (
+                <p className="text-sm text-muted italic">
+                  {locale === "vi" ? "Chưa theo dõi ai" : "Not tracking anyone"}
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {following.map((u) => {
+                    const latestAttempt =
+                      u.attempts && u.attempts.length > 0 ? u.attempts[0] : null;
+                    const latestVocab =
+                      u.vocabAttempts && u.vocabAttempts.length > 0 ? u.vocabAttempts[0] : null;
+                    return (
+                      <li
+                        key={u.id}
+                        className="p-3 rounded-lg bg-surface flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold text-sm">
+                            {u.name[0]}
+                          </div>
+                          <span className="text-sm font-medium">{u.name}</span>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {latestAttempt ? (
+                            <Link
+                              href={`/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`}
+                              className={`text-xs px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
+                            >
+                              {locale === "vi" ? "Bài tập" : "Exercise"}: {latestAttempt.status === "completed"
+                                ? `${latestAttempt.score}/${latestAttempt.totalQuestions}`
+                                : locale === "vi" ? "Đang làm" : "In Progress"}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted">
+                              {locale === "vi" ? "Chưa làm bài" : "No exercise"}
+                            </span>
+                          )}
+                          {latestVocab ? (
+                            <Link
+                              href={`/exercises/${exerciseId}/vocab/${latestVocab.id}/result`}
+                              className={`text-xs px-2 py-0.5 rounded-full ${latestVocab.status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
+                            >
+                              {locale === "vi" ? "Từ vựng" : "Vocab"}: {latestVocab.status === "completed"
+                                ? `${latestVocab.score}/${latestVocab.totalItems}`
+                                : locale === "vi" ? "Đang làm" : "In Progress"}
+                            </Link>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           )}
         </div>
       </div>
