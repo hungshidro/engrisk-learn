@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { exerciseFollowers, exerciseAttempts, vocabularyAttempts, users } from "@/db/schema";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 export async function GET(
   req: NextRequest,
@@ -114,7 +114,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { userId } = body; // The friend we are adding as a follower
+    const { userId, type } = body; // type: "add_follower" | "follow"
 
     if (!userId) {
       return new NextResponse("User ID is required", { status: 400 });
@@ -123,36 +123,43 @@ export async function POST(
     const currentUserId = session.user.id;
     const { id: exerciseId } = await params;
 
-    // Check if already following
-    const existing = await db.query.exerciseFollowers.findFirst({
-      where: and(
-        eq(exerciseFollowers.exerciseId, exerciseId),
-        or(
-          and(eq(exerciseFollowers.userId, userId), eq(exerciseFollowers.followedUserId, currentUserId)),
-          and(eq(exerciseFollowers.userId, currentUserId), eq(exerciseFollowers.followedUserId, userId))
-        )
-      ),
-    });
-
-    if (existing) {
-      return new NextResponse("User is already tracking this exercise with you", { status: 400 });
+    if (type === "add_follower") {
+      // Friend (userId) follows ME => they track my progress
+      const existing = await db.query.exerciseFollowers.findFirst({
+        where: and(
+          eq(exerciseFollowers.exerciseId, exerciseId),
+          eq(exerciseFollowers.userId, userId),
+          eq(exerciseFollowers.followedUserId, currentUserId)
+        ),
+      });
+      if (existing) {
+        return new NextResponse("Already a follower", { status: 400 });
+      }
+      await db.insert(exerciseFollowers).values({
+        exerciseId,
+        userId, // friend
+        followedUserId: currentUserId, // me
+      });
+    } else if (type === "follow") {
+      // I follow friend (userId) => I track their progress
+      const existing = await db.query.exerciseFollowers.findFirst({
+        where: and(
+          eq(exerciseFollowers.exerciseId, exerciseId),
+          eq(exerciseFollowers.userId, currentUserId),
+          eq(exerciseFollowers.followedUserId, userId)
+        ),
+      });
+      if (existing) {
+        return new NextResponse("Already following", { status: 400 });
+      }
+      await db.insert(exerciseFollowers).values({
+        exerciseId,
+        userId: currentUserId, // me
+        followedUserId: userId, // friend
+      });
+    } else {
+      return new NextResponse("Invalid type. Use 'add_follower' or 'follow'.", { status: 400 });
     }
-
-    // Add follower bidirectionally
-    await db
-      .insert(exerciseFollowers)
-      .values([
-        {
-          exerciseId,
-          userId, // friend follows me
-          followedUserId: currentUserId,
-        },
-        {
-          exerciseId,
-          userId: currentUserId, // i follow friend
-          followedUserId: userId,
-        }
-      ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -73,12 +73,27 @@ export default function ExerciseFollowers({
     fetchFriends();
   }, [exerciseId]);
 
-  const addFollower = async (friendId: string) => {
+  const addAsFollower = async (friendId: string) => {
     try {
       const res = await fetch(`/api/exercises/${exerciseId}/followers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: friendId }),
+        body: JSON.stringify({ userId: friendId, type: "add_follower" }),
+      });
+      if (res.ok) {
+        fetchFollowerData();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const followFriend = async (friendId: string) => {
+    try {
+      const res = await fetch(`/api/exercises/${exerciseId}/followers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: friendId, type: "follow" }),
       });
       if (res.ok) {
         fetchFollowerData();
@@ -343,10 +358,15 @@ export default function ExerciseFollowers({
       {/* Share Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
-          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 animate-scale-in">
-            <h3 className="text-xl font-bold mb-4">
+          <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl p-6 animate-scale-in">
+            <h3 className="text-xl font-bold mb-2">
               {locale === "vi" ? "Chọn bạn bè" : "Select Friends"}
             </h3>
+            <p className="text-xs text-muted mb-4">
+              {locale === "vi"
+                ? "Thêm bạn bè theo dõi tiến độ của bạn hoặc theo dõi tiến độ bạn bè."
+                : "Add friends to track your progress or follow theirs."}
+            </p>
 
             <div className="mb-4">
               <input
@@ -360,7 +380,7 @@ export default function ExerciseFollowers({
               />
             </div>
 
-            <div className="max-h-60 overflow-y-auto space-y-2 mb-6 pr-2 custom-scrollbar">
+            <div className="max-h-72 overflow-y-auto space-y-3 mb-6 pr-1 custom-scrollbar">
               {friends.length === 0 ? (
                 <p className="text-muted text-sm text-center py-4">
                   {locale === "vi" ? "Chưa có bạn bè nào." : "No friends yet."}
@@ -373,32 +393,51 @@ export default function ExerciseFollowers({
                       .includes(searchFriendTerm.toLowerCase()),
                   )
                   .map((f) => {
-                    const isFollowing = followers.some(
+                    const isAlreadyFollower = followers.some(
+                      (fol) => fol.id === f.id,
+                    );
+                    const isAlreadyFollowing = following.some(
                       (fol) => fol.id === f.id,
                     );
                     return (
                       <div
                         key={f.id}
-                        className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-background/50"
+                        className="p-4 rounded-xl border border-border/50 bg-background/50 space-y-3"
                       >
-                        <span className="font-medium text-sm">{f.name}</span>
-                        <button
-                          onClick={() => addFollower(f.id)}
-                          disabled={isFollowing}
-                          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                            isFollowing
-                              ? "bg-background text-muted cursor-not-allowed"
-                              : "bg-primary/10 text-primary hover:bg-primary/20"
-                          }`}
-                        >
-                          {isFollowing
-                            ? locale === "vi"
-                              ? "Đã thêm"
-                              : "Added"
-                            : locale === "vi"
-                              ? "Thêm"
-                              : "Add"}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                            {f.name[0]}
+                          </div>
+                          <span className="font-medium text-sm">{f.name}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => addAsFollower(f.id)}
+                            disabled={isAlreadyFollower}
+                            className={`flex-1 text-xs px-3 py-2 rounded-lg font-medium transition-colors text-center ${
+                              isAlreadyFollower
+                                ? "bg-background text-muted cursor-not-allowed border border-border/50"
+                                : "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/20"
+                            }`}
+                          >
+                            {isAlreadyFollower
+                              ? `✓ ${locale === "vi" ? "Đã theo dõi bạn" : "Follower"}`
+                              : `👥 ${locale === "vi" ? "Thêm người theo dõi" : "Add follower"}`}
+                          </button>
+                          <button
+                            onClick={() => followFriend(f.id)}
+                            disabled={isAlreadyFollowing}
+                            className={`flex-1 text-xs px-3 py-2 rounded-lg font-medium transition-colors text-center ${
+                              isAlreadyFollowing
+                                ? "bg-background text-muted cursor-not-allowed border border-border/50"
+                                : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+                            }`}
+                          >
+                            {isAlreadyFollowing
+                              ? `✓ ${locale === "vi" ? "Đang theo dõi" : "Following"}`
+                              : `🎯 ${locale === "vi" ? "Theo dõi" : "Follow"}`}
+                          </button>
+                        </div>
                       </div>
                     );
                   })
