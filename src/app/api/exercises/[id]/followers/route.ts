@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { exerciseFollowers, exerciseAttempts } from "@/db/schema";
+import { exerciseFollowers, exerciseAttempts, vocabularyAttempts, users } from "@/db/schema";
 import { eq, and, desc, or } from "drizzle-orm";
 
 export async function GET(
@@ -34,6 +34,11 @@ export async function GET(
               where: eq(exerciseAttempts.exerciseId, exerciseId),
               limit: 1,
               orderBy: [desc(exerciseAttempts.startedAt)],
+            },
+            vocabAttempts: {
+              where: eq(vocabularyAttempts.exerciseId, exerciseId),
+              limit: 1,
+              orderBy: [desc(vocabularyAttempts.startedAt)],
             }
           }
         },
@@ -56,13 +61,39 @@ export async function GET(
               where: eq(exerciseAttempts.exerciseId, exerciseId),
               limit: 1,
               orderBy: [desc(exerciseAttempts.startedAt)],
+            },
+            vocabAttempts: {
+              where: eq(vocabularyAttempts.exerciseId, exerciseId),
+              limit: 1,
+              orderBy: [desc(vocabularyAttempts.startedAt)],
             }
           }
         },
       },
     });
 
+    const meData = await db.query.users.findFirst({
+      where: eq(users.id, currentUserId),
+      columns: {
+        id: true,
+        name: true,
+      },
+      with: {
+        attempts: {
+          where: eq(exerciseAttempts.exerciseId, exerciseId),
+          limit: 1,
+          orderBy: [desc(exerciseAttempts.startedAt)],
+        },
+        vocabAttempts: {
+          where: eq(vocabularyAttempts.exerciseId, exerciseId),
+          limit: 1,
+          orderBy: [desc(vocabularyAttempts.startedAt)],
+        }
+      }
+    });
+
     return NextResponse.json({
+      me: meData,
       followers: followersData.map((f) => f.user), // People tracking my progress
       following: followingData.map((f) => f.followedUser), // People whose progress I am tracking
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
 import { useI18n } from "@/i18n";
 
@@ -12,7 +12,7 @@ interface Option {
 
 interface Question {
   id: string;
-  type: "multiple_choice" | "fill_in_blank";
+  type: "multiple_choice" | "fill_in_blank" | "word_order";
   content: string;
   correctAnswer: string | null;
   explanation: string | null;
@@ -45,11 +45,7 @@ export default function ResultPage({
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchResult();
-  }, [id, attemptId]);
-
-  const fetchResult = async () => {
+  const fetchResult = useCallback(async () => {
     try {
       const res = await fetch(`/api/exercises/${id}/attempt/${attemptId}`);
       if (res.ok) {
@@ -62,7 +58,11 @@ export default function ResultPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, attemptId]);
+
+  useEffect(() => {
+    fetchResult();
+  }, [fetchResult]);
 
   const isCorrect = (question: Question, userAnswer: string) => {
     if (question.type === "multiple_choice") {

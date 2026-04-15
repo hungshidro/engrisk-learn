@@ -17,7 +17,7 @@ const optionSchema = z.object({
 });
 
 const questionSchema = z.object({
-  type: z.enum(["multiple_choice", "fill_in_blank"]),
+  type: z.enum(["multiple_choice", "fill_in_blank", "word_order"]),
   audioIndex: z.number().int().min(0).nullable().optional(),
   content: z.string().min(1),
   correctAnswer: z.string().optional(),

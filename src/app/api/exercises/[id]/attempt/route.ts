@@ -131,6 +131,14 @@ export async function PATCH(
         ) {
           score++;
         }
+      } else if (question.type === "word_order") {
+        // User's answer is the sentence they built; compare with correctAnswer
+        if (
+          userAnswer.trim().toLowerCase() ===
+          question.correctAnswer?.trim().toLowerCase()
+        ) {
+          score++;
+        }
       }
     }
 

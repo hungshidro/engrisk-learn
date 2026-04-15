@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { users, friendships, exerciseAttempts, exercises } from "@/db/schema";
+import { users, friendships, exerciseAttempts, exercises, vocabularyAttempts } from "@/db/schema";
 import { eq, or, and, desc } from "drizzle-orm";
 import { auth } from "@/auth";
 import { notFound } from "next/navigation";
@@ -16,6 +16,13 @@ async function getProfileData(id: string, currentUserId?: string) {
       },
       attempts: {
         orderBy: [desc(exerciseAttempts.startedAt)],
+        with: {
+          exercise: true,
+        },
+        limit: 10,
+      },
+      vocabAttempts: {
+        orderBy: [desc(vocabularyAttempts.startedAt)],
         with: {
           exercise: true,
         },
@@ -117,10 +124,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
 
         <div className="bg-card glass rounded-xl p-6 border border-border">
           <h2 className="text-xl font-bold mb-6">Recent Activity</h2>
-          {profileUser.attempts.length === 0 ? (
+          {profileUser.attempts.length === 0 && profileUser.vocabAttempts.length === 0 ? (
             <p className="text-muted text-sm">No recent activity.</p>
           ) : (
             <ul className="space-y-4">
+              {/* Exercise Attempts */}
               {profileUser.attempts.map(attempt => (
                 <li key={attempt.id} className="p-4 rounded-lg bg-background/50 border border-border">
                   <div className="flex justify-between items-start mb-2">
@@ -140,6 +148,31 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                     {attempt.status === 'completed' && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                       {Math.round(((attempt.score || 0) / (attempt.totalQuestions || 1)) * 100)}%
+                    </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+              {/* Vocabulary Attempts */}
+              {profileUser.vocabAttempts.map(attempt => (
+                <li key={attempt.id} className="p-4 rounded-lg bg-background/50 border border-border">
+                  <div className="flex justify-between items-start mb-2">
+                    <Link href={`/exercises/${attempt.exerciseId}${attempt.status === 'completed' ? `/vocab/${attempt.id}/result` : ''}`} className="font-medium hover:text-primary transition-colors">
+                      📚 {attempt.exercise.title}
+                    </Link>
+                    <span className="text-xs text-muted">
+                      {formatDistanceToNow(attempt.completedAt || attempt.startedAt, { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-semibold ${attempt.status === 'completed' ? 'gradient-text' : 'text-amber-500'}`}>
+                      {attempt.status === 'completed' 
+                        ? `Vocab: ${attempt.score}/${attempt.totalItems}` 
+                        : `Vocab In Progress`}
+                    </span>
+                    {attempt.status === 'completed' && attempt.totalItems > 0 && (
+                    <span className="text-xs bg-secondary/10 text-secondary px-2 py-0.5 rounded-full">
+                      {Math.round(((attempt.score || 0) / (attempt.totalItems || 1)) * 100)}%
                     </span>
                     )}
                   </div>

@@ -15,6 +15,7 @@ export const exerciseTypeEnum = pgEnum("exercise_type", ["quiz", "listening", "m
 export const questionTypeEnum = pgEnum("question_type", [
   "multiple_choice",
   "fill_in_blank",
+  "word_order",
 ]);
 export const attemptStatusEnum = pgEnum("attempt_status", [
   "in_progress",
@@ -120,6 +121,23 @@ export const exerciseAttempts = pgTable("exercise_attempts", {
   completedAt: timestamp("completed_at"),
 });
 
+// Vocabulary Attempts
+export const vocabularyAttempts = pgTable("vocabulary_attempts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  exerciseId: uuid("exercise_id")
+    .notNull()
+    .references(() => exercises.id, { onDelete: "cascade" }),
+  status: attemptStatusEnum("status").notNull().default("in_progress"),
+  answers: jsonb("answers").$type<Record<string, { meaning: string; pronunciation: string }>>().default({}),
+  score: integer("score"),
+  totalItems: integer("total_items").notNull().default(0),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Friendships
 export const friendships = pgTable("friendships", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -153,6 +171,7 @@ export const exerciseFollowers = pgTable("exercise_followers", {
 export const usersRelations = relations(users, ({ many }) => ({
   exercises: many(exercises),
   attempts: many(exerciseAttempts),
+  vocabAttempts: many(vocabularyAttempts),
   friendshipsRequested: many(friendships, { relationName: "requester" }),
   friendshipsReceived: many(friendships, { relationName: "receiver" }),
   following: many(exerciseFollowers, { relationName: "follower" }),
@@ -168,6 +187,7 @@ export const exercisesRelations = relations(exercises, ({ one, many }) => ({
   vocabularies: many(vocabularies),
   audios: many(exerciseAudios),
   attempts: many(exerciseAttempts),
+  vocabAttempts: many(vocabularyAttempts),
   followers: many(exerciseFollowers),
 }));
 
@@ -212,6 +232,20 @@ export const exerciseAttemptsRelations = relations(
     }),
     exercise: one(exercises, {
       fields: [exerciseAttempts.exerciseId],
+      references: [exercises.id],
+    }),
+  })
+);
+
+export const vocabularyAttemptsRelations = relations(
+  vocabularyAttempts,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [vocabularyAttempts.userId],
+      references: [users.id],
+    }),
+    exercise: one(exercises, {
+      fields: [vocabularyAttempts.exerciseId],
       references: [exercises.id],
     }),
   })

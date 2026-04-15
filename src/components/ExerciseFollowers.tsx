@@ -5,6 +5,13 @@ import { useI18n } from "@/i18n";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
+interface FriendProgress {
+  id: string;
+  name: string;
+  attempts?: { id: string; status: string; score: number; totalQuestions: number }[];
+  vocabAttempts?: { id: string; status: string; score: number; totalItems: number }[];
+}
+
 export default function ExerciseFollowers({
   exerciseId,
 }: {
@@ -13,12 +20,9 @@ export default function ExerciseFollowers({
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
   const { locale } = useI18n();
-  const [followers, setFollowers] = useState<
-    { id: string; name: string; attempts?: any[] }[]
-  >([]);
-  const [following, setFollowing] = useState<
-    { id: string; name: string; attempts?: any[] }[]
-  >([]);
+  const [followers, setFollowers] = useState<FriendProgress[]>([]);
+  const [following, setFollowing] = useState<FriendProgress[]>([]);
+  const [me, setMe] = useState<FriendProgress | null>(null);
   const [friends, setFriends] = useState<{ id: string; name: string }[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +35,7 @@ export default function ExerciseFollowers({
         const data = await res.json();
         setFollowers(data.followers);
         setFollowing(data.following);
+        setMe(data.me);
       }
     } catch (e) {
       console.error(e);
@@ -99,7 +104,56 @@ export default function ExerciseFollowers({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <h3 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
+            {locale === "vi" ? "Tiến độ của bạn" : "Your progress"}
+          </h3>
+          {!me ? (
+            <p className="text-sm text-muted italic">
+              {locale === "vi" ? "Chưa có tiến độ" : "No progress yet"}
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              <li className="p-3 rounded-lg bg-surface/50 border border-border hover:bg-surface/80 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                      {me.name[0]}
+                    </div>
+                    <span className="text-sm font-medium">{me.name} (Bạn)</span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {me.attempts && me.attempts.length > 0 ? (
+                      <Link
+                        href={`/exercises/${exerciseId}/attempt/${me.attempts[0].id}/result`}
+                        className={`text-xs px-2 py-0.5 rounded-full ${me.attempts[0].status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
+                      >
+                        {locale === "vi" ? "Bài tập" : "Exercise"}: {me.attempts[0].status === "completed"
+                          ? `${me.attempts[0].score}/${me.attempts[0].totalQuestions}`
+                          : locale === "vi" ? "Đang làm" : "In Progress"}
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-muted">
+                        {locale === "vi" ? "Chưa làm bài" : "No exercise"}
+                      </span>
+                    )}
+                    {me.vocabAttempts && me.vocabAttempts.length > 0 ? (
+                      <Link
+                        href={`/exercises/${exerciseId}/vocab/${me.vocabAttempts[0].id}/result`}
+                        className={`text-xs px-2 py-0.5 rounded-full ${me.vocabAttempts[0].status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
+                      >
+                        {locale === "vi" ? "Từ vựng" : "Vocab"}: {me.vocabAttempts[0].status === "completed"
+                          ? `${me.vocabAttempts[0].score}/${me.vocabAttempts[0].totalItems}`
+                          : locale === "vi" ? "Đang làm" : "In Progress"}
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            </ul>
+          )}
+        </div>
         <div>
           <h3 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
             {locale === "vi" ? "Đang theo dõi bạn" : "Tracking your progress"}
@@ -113,52 +167,49 @@ export default function ExerciseFollowers({
               {followers.map((u) => {
                 const latestAttempt =
                   u.attempts && u.attempts.length > 0 ? u.attempts[0] : null;
+                const latestVocab =
+                  u.vocabAttempts && u.vocabAttempts.length > 0 ? u.vocabAttempts[0] : null;
                 return (
                   <li
                     key={u.id}
                     className="p-3 rounded-lg bg-surface/50 border border-border hover:bg-surface/80 transition-colors"
                   >
-                    <Link
-                      href={
-                        latestAttempt
-                          ? `/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`
-                          : `/profile/${u.id}`
-                      }
-                      className="flex items-center justify-between"
-                    >
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
                           {u.name[0]}
                         </div>
                         <span className="text-sm font-medium">{u.name}</span>
                       </div>
-                      {latestAttempt ? (
-                        <div className="text-right flex flex-col items-end">
-                          <span
-                            className={`text-xs ml-4 px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
+                      <div className="flex flex-col items-end gap-1">
+                        {/* Exercise attempt */}
+                        {latestAttempt ? (
+                          <Link
+                            href={`/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`}
+                            className={`text-xs px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
                           >
-                            {latestAttempt.status === "completed"
-                              ? locale === "vi"
-                                ? "Hoàn thành"
-                                : "Completed"
-                              : locale === "vi"
-                                ? "Đang làm"
-                                : "In Progress"}
+                            {locale === "vi" ? "Bài tập" : "Exercise"}: {latestAttempt.status === "completed"
+                              ? `${latestAttempt.score}/${latestAttempt.totalQuestions}`
+                              : locale === "vi" ? "Đang làm" : "In Progress"}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted">
+                            {locale === "vi" ? "Chưa làm bài" : "No exercise"}
                           </span>
-                          {latestAttempt.score !== null &&
-                            latestAttempt.totalQuestions > 0 && (
-                              <span className="text-xs font-bold mt-1">
-                                {latestAttempt.score}/
-                                {latestAttempt.totalQuestions}
-                              </span>
-                            )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted">
-                          {locale === "vi" ? "Chưa làm" : "Not started"}
-                        </span>
-                      )}
-                    </Link>
+                        )}
+                        {/* Vocab attempt */}
+                        {latestVocab ? (
+                          <Link
+                            href={`/exercises/${exerciseId}/vocab/${latestVocab.id}/result`}
+                            className={`text-xs px-2 py-0.5 rounded-full ${latestVocab.status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
+                          >
+                            {locale === "vi" ? "Từ vựng" : "Vocab"}: {latestVocab.status === "completed"
+                              ? `${latestVocab.score}/${latestVocab.totalItems}`
+                              : locale === "vi" ? "Đang làm" : "In Progress"}
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
                   </li>
                 );
               })}
@@ -179,52 +230,47 @@ export default function ExerciseFollowers({
               {following.map((u) => {
                 const latestAttempt =
                   u.attempts && u.attempts.length > 0 ? u.attempts[0] : null;
+                const latestVocab =
+                  u.vocabAttempts && u.vocabAttempts.length > 0 ? u.vocabAttempts[0] : null;
                 return (
                   <li
                     key={u.id}
                     className="p-3 rounded-lg bg-surface/50 border border-border hover:bg-surface/80 transition-colors"
                   >
-                    <Link
-                      href={
-                        latestAttempt
-                          ? `/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`
-                          : `/profile/${u.id}`
-                      }
-                      className="flex items-center justify-between"
-                    >
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold text-sm">
                           {u.name[0]}
                         </div>
                         <span className="text-sm font-medium">{u.name}</span>
                       </div>
-                      {latestAttempt ? (
-                        <div className="text-right flex flex-col items-end">
-                          <span
-                            className={`text-xs ml-4 px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
+                      <div className="flex flex-col items-end gap-1">
+                        {latestAttempt ? (
+                          <Link
+                            href={`/exercises/${exerciseId}/attempt/${latestAttempt.id}/result`}
+                            className={`text-xs px-2 py-0.5 rounded-full ${latestAttempt.status === "completed" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-500"}`}
                           >
-                            {latestAttempt.status === "completed"
-                              ? locale === "vi"
-                                ? "Hoàn thành"
-                                : "Completed"
-                              : locale === "vi"
-                                ? "Đang làm"
-                                : "In Progress"}
+                            {locale === "vi" ? "Bài tập" : "Exercise"}: {latestAttempt.status === "completed"
+                              ? `${latestAttempt.score}/${latestAttempt.totalQuestions}`
+                              : locale === "vi" ? "Đang làm" : "In Progress"}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted">
+                            {locale === "vi" ? "Chưa làm bài" : "No exercise"}
                           </span>
-                          {latestAttempt.score !== null &&
-                            latestAttempt.totalQuestions > 0 && (
-                              <span className="text-xs font-bold mt-1">
-                                {latestAttempt.score}/
-                                {latestAttempt.totalQuestions}
-                              </span>
-                            )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted">
-                          {locale === "vi" ? "Chưa làm" : "Not started"}
-                        </span>
-                      )}
-                    </Link>
+                        )}
+                        {latestVocab ? (
+                          <Link
+                            href={`/exercises/${exerciseId}/vocab/${latestVocab.id}/result`}
+                            className={`text-xs px-2 py-0.5 rounded-full ${latestVocab.status === "completed" ? "bg-secondary/20 text-secondary" : "bg-amber-500/20 text-amber-500"}`}
+                          >
+                            {locale === "vi" ? "Từ vựng" : "Vocab"}: {latestVocab.status === "completed"
+                              ? `${latestVocab.score}/${latestVocab.totalItems}`
+                              : locale === "vi" ? "Đang làm" : "In Progress"}
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
                   </li>
                 );
               })}

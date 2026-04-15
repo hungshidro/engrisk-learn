@@ -11,7 +11,7 @@ interface QuestionOption {
 }
 
 interface Question {
-  type: "multiple_choice" | "fill_in_blank";
+  type: "multiple_choice" | "fill_in_blank" | "word_order";
   audioIndex: number | null;
   content: string;
   correctAnswer: string;
@@ -176,7 +176,7 @@ export default function CreateExercisePage() {
   const updateQuestion = (index: number, field: keyof Question, value: string) => {
     const updated = [...questions];
     updated[index] = { ...updated[index], [field]: value };
-    if (field === "type" && value === "fill_in_blank") {
+    if (field === "type" && (value === "fill_in_blank" || value === "word_order")) {
       updated[index].options = [];
     } else if (field === "type" && value === "multiple_choice") {
       updated[index].options = [
@@ -225,10 +225,12 @@ export default function CreateExercisePage() {
 
       const qContent = questionLine.slice(2).trim();
       const isFill = /\(fill\)/i.test(qContent);
+      const isOrder = /\(order\)/i.test(qContent);
       const audioMatch = qContent.match(/\((audio|listen)\s*:\s*(\d+)\)/i);
       const audioIndex = audioMatch ? Math.max(0, Number(audioMatch[2]) - 1) : null;
       const cleanContent = qContent
         .replace(/\(fill\)/gi, "")
+        .replace(/\(order\)/gi, "")
         .replace(/\((audio|listen)\s*:\s*\d+\)/gi, "")
         .trim();
 
@@ -238,7 +240,18 @@ export default function CreateExercisePage() {
 
       const answers = lines.slice(1).filter((l) => l.trim().startsWith("A:"));
 
-      if (isFill || answers.length <= 1) {
+      // Note: order has priority. If it's a fill_in_blank or just 1 answer without (order), defaults to fill_in_blank
+      if (isOrder) {
+        const correctAnswer = answers.length > 0 ? answers[0].slice(2).replace("*", "").trim() : "";
+        parsed.push({
+          type: "word_order",
+          audioIndex,
+          content: cleanContent,
+          correctAnswer,
+          explanation: "",
+          options: [],
+        });
+      } else if (isFill || answers.length <= 1) {
         // Fill in blank
         const correctAnswer = answers.length > 0 ? answers[0].slice(2).replace("*", "").trim() : "";
         parsed.push({
@@ -679,7 +692,7 @@ export default function CreateExercisePage() {
             <div className="glass p-5 space-y-3">
               <p className="text-xs text-muted">{t.exercise.importQuestionsFormat}</p>
               <p className="text-xs text-muted">
-                Có thể thêm <code>(audio:1)</code> hoặc <code>(listen:1)</code> sau Q: để gắn câu hỏi vào bài nghe số 1. Dùng <code>(fill)</code> cho điền khuyết.
+                Có thể thêm <code>(audio:1)</code> hoặc <code>(listen:1)</code> sau Q: để gắn câu hỏi vào bài nghe số 1. Dùng <code>(fill)</code> cho điền khuyết, <code>(order)</code> cho sắp xếp từ.
               </p>
               <textarea
                 value={questionImportText}
@@ -718,7 +731,7 @@ export default function CreateExercisePage() {
               </div>
 
               <div className="flex gap-2">
-                {(["multiple_choice", "fill_in_blank"] as const).map((tp) => (
+                {(["multiple_choice", "fill_in_blank", "word_order"] as const).map((tp) => (
                   <button
                     key={tp}
                     onClick={() => updateQuestion(qIndex, "type", tp)}
@@ -728,7 +741,7 @@ export default function CreateExercisePage() {
                         : "bg-surface border border-border text-muted"
                     }`}
                   >
-                    {tp === "multiple_choice" ? t.exercise.multipleChoice : t.exercise.fillInBlank}
+                    {tp === "multiple_choice" ? t.exercise.multipleChoice : tp === "fill_in_blank" ? t.exercise.fillInBlank : t.exercise.wordOrder}
                   </button>
                 ))}
               </div>
@@ -798,12 +811,15 @@ export default function CreateExercisePage() {
                   placeholder={
                     q.type === "fill_in_blank"
                       ? "I ___ to school every day. (go)"
-                      : "What is the meaning of 'apple'?"
+                      : q.type === "word_order"
+                      ? "Sắp xếp để tạo thành câu đúng: 'Đó là một dự án lớn.'"
+                      : "Which is the correct answer?"
                   }
                 />
               </div>
 
-              {q.type === "multiple_choice" ? (
+              {/* Answers */}
+              {q.type === "multiple_choice" && (
                 <div className="space-y-2">
                   <label className="block text-xs font-medium text-muted">{t.exercise.option}</label>
                   {q.options.map((opt, oIndex) => (
@@ -838,17 +854,22 @@ export default function CreateExercisePage() {
                     + {t.exercise.addOption}
                   </button>
                 </div>
-              ) : (
+              )}
+
+              {/* Correct Answer Input for non-multiple-choice */}
+              {(q.type === "fill_in_blank" || q.type === "word_order") && (
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">
-                    {t.exercise.correctAnswer} *
-                  </label>
+                  <label className="block text-xs font-medium text-muted mb-1">{t.exercise.correctAnswer} *</label>
                   <input
                     type="text"
                     value={q.correctAnswer}
                     onChange={(e) => updateQuestion(qIndex, "correctAnswer", e.target.value)}
-                    className="w-full"
-                    placeholder="go"
+                    className="w-full font-mono text-sm"
+                    placeholder={
+                      q.type === "word_order"
+                        ? "That is a great project."
+                        : "go"
+                    }
                   />
                 </div>
               )}

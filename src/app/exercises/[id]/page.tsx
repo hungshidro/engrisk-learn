@@ -67,6 +67,7 @@ export default function ExerciseDetailPage({
   const [loading, setLoading] = useState(true);
   const [showVocab, setShowVocab] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [startingVocab, setStartingVocab] = useState(false);
 
   useEffect(() => {
     fetchExercise();
@@ -105,6 +106,30 @@ export default function ExerciseDetailPage({
       console.error("Failed to start attempt:", error);
     } finally {
       setStarting(false);
+    }
+  };
+
+  const handleStartVocab = async () => {
+    if (!session) {
+      router.push(`/login?callbackUrl=/exercises/${id}`);
+      return;
+    }
+
+    setStartingVocab(true);
+    try {
+      const res = await fetch(`/api/exercises/${id}/vocab-attempt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        const attempt = await res.json();
+        router.push(`/exercises/${id}/vocab?attemptId=${attempt.id}`);
+      }
+    } catch (error) {
+      console.error("Failed to start vocab attempt:", error);
+    } finally {
+      setStartingVocab(false);
     }
   };
 
@@ -258,6 +283,23 @@ export default function ExerciseDetailPage({
             </>
           )}
         </button>
+
+        {/* Vocab Practice Button */}
+        {exercise.vocabularies.length > 0 && (
+          <button
+            onClick={handleStartVocab}
+            disabled={startingVocab}
+            className="btn-secondary text-lg !px-8 !py-3 ml-3"
+          >
+            {startingVocab ? (
+              <div className="spinner !w-5 !h-5 !border-2" />
+            ) : (
+              <>
+                📚 {t.vocabPractice.startVocab}
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Vocabulary Section */}

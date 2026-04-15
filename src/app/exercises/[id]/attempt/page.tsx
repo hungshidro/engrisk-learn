@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, Suspense } from "react";
+import { useState, useEffect, use, Suspense, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/i18n";
 import { smartSpeak } from "@/lib/tts";
@@ -12,10 +12,134 @@ interface Option {
 
 interface Question {
   id: string;
-  type: "multiple_choice" | "fill_in_blank";
+  type: "multiple_choice" | "fill_in_blank" | "word_order";
   audioIndex: number | null;
   content: string;
+  correctAnswer: string | null;
   options: Option[];
+}
+
+// ─── Word Order Question Component ───
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function WordOrderQuestion({
+  question,
+  value,
+  onChange,
+}: {
+  question: Question;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const { t } = useI18n();
+  // Derive words from correctAnswer, shuffle once
+  const shuffledWords = useMemo(() => {
+    const words = (question.correctAnswer || "").split(" ").filter(Boolean);
+    return shuffleArray(words.map((w, i) => ({ word: w, idx: i })));
+  }, [question.correctAnswer]);
+
+  // Selected indices from the shuffled array
+  const selectedIndices: number[] = useMemo(() => {
+    if (!value) return [];
+    // value stores the built sentence; derive selected indices
+    const selectedWords = value.split(" ").filter(Boolean);
+    const used = new Set<number>();
+    const indices: number[] = [];
+    for (const sw of selectedWords) {
+      const found = shuffledWords.findIndex(
+        (w, i) => w.word.toLowerCase() === sw.toLowerCase() && !used.has(i)
+      );
+      if (found >= 0) {
+        indices.push(found);
+        used.add(found);
+      }
+    }
+    return indices;
+  }, [value, shuffledWords]);
+
+  const selectWord = useCallback(
+    (idx: number) => {
+      const newSelected = [...selectedIndices, idx];
+      const sentence = newSelected.map((i) => shuffledWords[i].word).join(" ");
+      onChange(sentence);
+    },
+    [selectedIndices, shuffledWords, onChange]
+  );
+
+  const removeWord = useCallback(
+    (posInSelected: number) => {
+      const newSelected = selectedIndices.filter((_, i) => i !== posInSelected);
+      const sentence = newSelected.map((i) => shuffledWords[i].word).join(" ");
+      onChange(sentence);
+    },
+    [selectedIndices, shuffledWords, onChange]
+  );
+
+  const resetAll = useCallback(() => {
+    onChange("");
+  }, [onChange]);
+
+  return (
+    <div className="ml-11 space-y-3">
+      {/* Answer area */}
+      <div className="min-h-[52px] p-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-wrap gap-2 items-center">
+        {selectedIndices.length === 0 ? (
+          <span className="text-sm text-muted italic">
+            {t.attempt.wordOrderPlaceholder || "Nhấn vào các từ bên dưới để sắp xếp..."}
+          </span>
+        ) : (
+          selectedIndices.map((wordIdx, posIdx) => (
+            <button
+              key={`sel-${posIdx}`}
+              onClick={() => removeWord(posIdx)}
+              className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm font-medium border border-primary/30 hover:bg-error/20 hover:text-error hover:border-error/30 transition-all"
+              title={t.attempt.wordOrderRemove || "Nhấn để bỏ"}
+            >
+              {shuffledWords[wordIdx].word}
+              <span className="ml-1.5 text-xs opacity-60">×</span>
+            </button>
+          ))
+        )}
+        {selectedIndices.length > 0 && (
+          <button
+            onClick={resetAll}
+            className="ml-auto text-xs text-muted hover:text-error transition-colors px-2 py-1"
+            title="Reset"
+          >
+            ↺
+          </button>
+        )}
+      </div>
+
+      {/* Available words */}
+      <div className="flex flex-wrap gap-2">
+        {shuffledWords.map((item, idx) => {
+          const isUsed = selectedIndices.includes(idx);
+          return (
+            <button
+              key={`word-${idx}`}
+              onClick={() => !isUsed && selectWord(idx)}
+              disabled={isUsed}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                isUsed
+                  ? "border-border/30 bg-surface/20 text-muted/30 cursor-not-allowed line-through"
+                  : "border-border bg-surface/50 text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary"
+              }`}
+            >
+              {item.word}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 interface AudioEntry {
@@ -68,11 +192,7 @@ function AttemptContent({
   const [showConfirm, setShowConfirm] = useState(false);
   const [toast, setToast] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, [id, attemptId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Fetch exercise
       const exRes = await fetch(`/api/exercises/${id}`);
@@ -101,7 +221,11 @@ function AttemptContent({
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, attemptId, router]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const setAnswer = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -196,20 +320,20 @@ function AttemptContent({
                   style={{ animationDelay: `${qIndex * 0.05}s` }}
                 >
                   <h4 className="text-sm font-semibold text-secondary mb-2">
-                    🎧 {exercise.audios?.[q.audioIndex]?.title || `Bài nghe ${q.audioIndex + 1}`}
+                    🎧 {exercise.audios?.[q.audioIndex as number]?.title || `Bài nghe ${(q.audioIndex as number) + 1}`}
                   </h4>
-                  {exercise.audios?.[q.audioIndex]?.audioUrl && (
-                    <audio controls className="w-full mb-2" src={exercise.audios[q.audioIndex].audioUrl!}>
+                  {exercise.audios?.[q.audioIndex as number]?.audioUrl && (
+                    <audio controls className="w-full mb-2" src={exercise.audios[q.audioIndex as number].audioUrl!}>
                       Your browser does not support audio.
                     </audio>
                   )}
-                  {exercise.audios?.[q.audioIndex]?.ttsText && (
+                  {exercise.audios?.[q.audioIndex as number]?.ttsText && (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() =>
                           handleSpeak(
-                            exercise.audios[q.audioIndex].ttsText!,
-                            exercise.audios[q.audioIndex].ttsType
+                            exercise.audios[q.audioIndex as number].ttsText!,
+                            exercise.audios[q.audioIndex as number].ttsType
                           )
                         }
                         className="btn-secondary text-xs"
@@ -265,6 +389,12 @@ function AttemptContent({
                     </button>
                   ))}
                 </div>
+              ) : q.type === "word_order" ? (
+                <WordOrderQuestion
+                  question={q}
+                  value={answers[q.id] || ""}
+                  onChange={(val) => setAnswer(q.id, val)}
+                />
               ) : (
                 <div className="ml-11">
                   <input
