@@ -27,13 +27,13 @@ export default function HomePage() {
             {t.hero.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register" className="btn-primary text-lg !px-8 !py-3 glow">
+            <Link href="/exercises" className="btn-primary text-lg !px-8 !py-3 glow">
               {t.hero.cta}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </Link>
-            <Link href="/exercises" className="btn-secondary text-lg !px-8 !py-3">
+            <Link href="/exercises/create" className="btn-secondary text-lg !px-8 !py-3">
               {t.hero.exploreCta}
             </Link>
           </div>
@@ -128,7 +128,7 @@ export default function HomePage() {
           <p className="text-muted mb-8 max-w-lg mx-auto">
             {t.hero.subtitle}
           </p>
-          <Link href="/register" className="btn-primary text-lg !px-8 !py-3">
+          <Link href="/exercises" className="btn-primary text-lg !px-8 !py-3">
             {t.hero.cta}
           </Link>
         </div>
