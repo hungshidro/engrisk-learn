@@ -72,7 +72,7 @@ export async function PUT(
 
     const [updated] = await db
       .update(exerciseAttempts)
-      .set({ answers })
+      .set({ answers, updatedAt: new Date() })
       .where(
         and(
           eq(exerciseAttempts.id, attemptId),
@@ -113,6 +113,9 @@ export async function PATCH(
       orderBy: (q, { asc }) => [asc(q.orderIndex)],
     });
 
+    const normalizeString = (str: string) => 
+      str?.toLowerCase().trim().replace(/\s+/g, " ") || "";
+
     // Calculate score
     let score = 0;
     for (const question of exerciseQuestions) {
@@ -125,18 +128,12 @@ export async function PATCH(
           score++;
         }
       } else if (question.type === "fill_in_blank") {
-        if (
-          userAnswer.trim().toLowerCase() ===
-          question.correctAnswer?.trim().toLowerCase()
-        ) {
+        if (normalizeString(userAnswer) === normalizeString(question.correctAnswer || "")) {
           score++;
         }
       } else if (question.type === "word_order") {
         // User's answer is the sentence they built; compare with correctAnswer
-        if (
-          userAnswer.trim().toLowerCase() ===
-          question.correctAnswer?.trim().toLowerCase()
-        ) {
+        if (normalizeString(userAnswer) === normalizeString(question.correctAnswer || "")) {
           score++;
         }
       }
@@ -149,6 +146,7 @@ export async function PATCH(
         score,
         status: "completed",
         completedAt: new Date(),
+        updatedAt: new Date(),
       })
       .where(
         and(

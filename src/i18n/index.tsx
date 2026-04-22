@@ -26,7 +26,13 @@ const I18nContext = createContext<I18nContextType | null>(null);
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("locale") as Locale) || "vi";
+      const local = localStorage.getItem("locale") as Locale | null;
+      if (local === "vi" || local === "en") return local;
+
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)locale=(vi|en)(?:;|$)/);
+      if (cookieMatch?.[1] === "vi" || cookieMatch?.[1] === "en") {
+        return cookieMatch[1];
+      }
     }
     return "vi";
   });
@@ -35,6 +41,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLocaleState(newLocale);
     if (typeof window !== "undefined") {
       localStorage.setItem("locale", newLocale);
+      document.cookie = `locale=${newLocale}; path=/; max-age=31536000; samesite=lax`;
     }
   }, []);
 

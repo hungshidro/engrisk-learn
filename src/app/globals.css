@@ -555,9 +555,19 @@ input::placeholder, textarea::placeholder {
   border-color: #10b981 !important;
 }
 
+.pronunciation-dot-incorrect {
+  background: rgba(239, 68, 68, 0.4) !important;
+  border-color: #ef4444 !important;
+}
+
+.pronunciation-dot-partial {
+  background: rgba(245, 158, 11, 0.3) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
 .pronunciation-dot-attempted {
-  background: rgba(239, 68, 68, 0.3) !important;
-  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(245, 158, 11, 0.3) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
 }
 
 /* Navigation buttons */

@@ -19,6 +19,7 @@ interface Exercise {
 
 interface VocabAnswer {
   meaning: string;
+  meaningVocabId: string | null;
   pronunciation: string;
 }
 
@@ -77,13 +78,26 @@ export default function VocabResultPage({
       ? Math.round((attempt.score / attempt.totalItems) * 100)
       : 0;
 
+  const normalizeString = (str: string) => 
+    str?.toLowerCase().trim().replace(/\s+/g, " ") || "";
+
+  const cleanMeaning = (m: string) => {
+    if (!m) return "";
+    return m.split(" / ")[0].split(" - ")[0].split(" (")[0].trim();
+  };
+
   // Calculate meaning and pronunciation scores separately
   let meaningScore = 0;
   let pronunciationScore = 0;
   for (const v of vocabs) {
     const a = attempt.answers[v.id];
     if (!a) continue;
-    if (a.meaning === v.meaning) meaningScore++;
+    
+    const isMeaningCorrect = 
+      (a.meaningVocabId && a.meaningVocabId === v.id) ||
+      (!a.meaningVocabId && normalizeString(a.meaning) === normalizeString(cleanMeaning(v.meaning)));
+      
+    if (isMeaningCorrect) meaningScore++;
     if (a.pronunciation === "correct") pronunciationScore++;
   }
 
@@ -170,7 +184,10 @@ export default function VocabResultPage({
       <div className="space-y-4">
         {vocabs.map((vocab, i) => {
           const answer = attempt.answers[vocab.id];
-          const meaningCorrect = answer?.meaning === vocab.meaning;
+          const actualCorrectMeaning = cleanMeaning(vocab.meaning);
+          const meaningCorrect = 
+            (answer?.meaningVocabId && answer.meaningVocabId === vocab.id) ||
+            (!answer?.meaningVocabId && normalizeString(answer?.meaning || "") === normalizeString(actualCorrectMeaning));
           const pronCorrect = answer?.pronunciation === "correct";
           const pronSkipped = answer?.pronunciation === "skipped";
 
@@ -215,7 +232,7 @@ export default function VocabResultPage({
                   </span>
                   {!meaningCorrect && (
                     <span className="text-xs text-success ml-2">
-                      → {vocab.meaning}
+                      → {actualCorrectMeaning}
                     </span>
                   )}
                 </div>

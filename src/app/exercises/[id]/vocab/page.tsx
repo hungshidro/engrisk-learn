@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, use, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, use, useCallback, useRef, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useI18n } from "@/i18n";
+import { Locale, useI18n } from "@/i18n";
 import { smartSpeak } from "@/lib/tts";
 
 // ─── Speech Recognition Types ───
@@ -43,16 +43,28 @@ interface Exercise {
 }
 interface VocabAnswer {
   meaning: string;
+  meaningVocabId: string | null;
   pronunciation: string; // "correct" | "incorrect" | "skipped" | ""
+}
+
+interface VocabOption {
+  text: string;
+  vocabId: string | null;
 }
 
 // ─── Helpers ───
 const FALLBACK_MEANINGS = [
-  "to create", "to understand", "to discover", "a feeling", "very large",
-  "to remember", "a method", "to believe", "important", "to compare",
-  "beautiful", "difficult", "to improve", "a result", "to consider",
-  "an example", "carefully", "to explain", "a process", "necessary",
+  "tạo ra", "thấu hiểu", "khám phá", "cảm xúc", "to lớn",
+  "ghi nhớ", "phương pháp", "tin tưởng", "quan trọng", "so sánh",
+  "xinh đẹp", "khó khăn", "cải thiện", "kết quả", "xem xét",
+  "ví dụ", "cẩn thận", "giải thích", "quy trình", "cần thiết",
 ];
+
+const cleanMeaning = (m: string) => {
+  if (!m) return "";
+  // Take only the part before " / ", " - ", or " ("
+  return m.split(" / ")[0].split(" - ")[0].split(" (")[0].trim();
+};
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -63,22 +75,52 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+const FALLBACK_WORDS = [
+  "create", "understand", "discover", "emotion", "huge",
+  "remember", "method", "believe", "important", "compare",
+  "beautiful", "difficult", "improve", "result", "review",
+  "example", "careful", "explain", "process", "necessary",
+];
+
 function generateOptions(
-  correctMeaning: string,
-  allMeanings: string[]
-): string[] {
+  correctVocab: Vocabulary,
+  allVocabs: Vocabulary[],
+  locale: Locale
+): VocabOption[] {
+  const getOptionText = (v: Vocabulary) =>
+    locale === "vi" ? cleanMeaning(v.meaning) : v.word;
+  const cleanCorrect = getOptionText(correctVocab);
+  
   // Get 3 wrong from sibling vocabs
-  const wrong = allMeanings.filter((m) => m !== correctMeaning);
-  const picked = shuffle(wrong).slice(0, 3);
-  // Fill remaining with fallbacks
+  const otherVocabs = allVocabs.filter((v) => v.id !== correctVocab.id);
+  const wrongOptions: VocabOption[] = otherVocabs.map(v => ({
+    text: getOptionText(v),
+    vocabId: v.id
+  }));
+
+  // Unique by text to avoid identical options
+  const uniqueWrongMap = new Map<string, VocabOption>();
+  wrongOptions.forEach(opt => {
+    if (opt.text !== cleanCorrect && !uniqueWrongMap.has(opt.text)) {
+      uniqueWrongMap.set(opt.text, opt);
+    }
+  });
+
+  const picked = shuffle(Array.from(uniqueWrongMap.values())).slice(0, 3);
+  
+  // Fill remaining with fallbacks if needed
+  const fallbackSource = locale === "vi" ? FALLBACK_MEANINGS : FALLBACK_WORDS;
   while (picked.length < 3) {
-    const fb = FALLBACK_MEANINGS.find(
-      (f) => f !== correctMeaning && !picked.includes(f)
+    const fb = fallbackSource.find(
+      (f) => cleanMeaning(f) !== cleanCorrect && !picked.some(p => p.text === cleanMeaning(f))
     );
-    if (fb) picked.push(fb);
-    else break;
+    if (fb) {
+      picked.push({ text: cleanMeaning(fb), vocabId: null });
+    } else break;
   }
-  return shuffle([correctMeaning, ...picked]);
+
+  const correctOption: VocabOption = { text: cleanCorrect, vocabId: correctVocab.id };
+  return shuffle([correctOption, ...picked]);
 }
 
 const normalize = (text: string) =>
@@ -114,7 +156,7 @@ function VocabPracticeContent({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const attemptId = searchParams.get("attemptId");
@@ -140,10 +182,15 @@ function VocabPracticeContent({
   const [spokenWord, setSpokenWord] = useState("");
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
-  // Options cache (per vocab id)
-  const [optionsMap, setOptionsMap] = useState<Record<string, string[]>>({});
-
   const currentVocab = exercise?.vocabularies[currentIndex];
+  const optionsMap = useMemo(() => {
+    if (!exercise) return {};
+    const map: Record<string, VocabOption[]> = {};
+    for (const v of exercise.vocabularies) {
+      map[v.id] = generateOptions(v, exercise.vocabularies, locale);
+    }
+    return map;
+  }, [exercise, locale]);
 
   // ─── Data loading ───
   useEffect(() => {
@@ -156,16 +203,6 @@ function VocabPracticeContent({
       if (exRes.ok) {
         const exData = await exRes.json();
         setExercise(exData);
-
-        // Generate options for all vocabs upfront
-        const allMeanings = exData.vocabularies.map(
-          (v: Vocabulary) => v.meaning
-        );
-        const map: Record<string, string[]> = {};
-        for (const v of exData.vocabularies) {
-          map[v.id] = generateOptions(v.meaning, allMeanings);
-        }
-        setOptionsMap(map);
       }
 
       if (attemptId) {
@@ -201,13 +238,19 @@ function VocabPracticeContent({
   };
 
   // ─── Meaning selection ───
-  const selectMeaning = (meaning: string) => {
+  const selectMeaning = (option: VocabOption) => {
     if (!currentVocab) return;
-    const prev = answers[currentVocab.id] || { meaning: "", pronunciation: "" };
-    const updated = { ...answers, [currentVocab.id]: { ...prev, meaning } };
+    const prev = answers[currentVocab.id] || { meaning: "", meaningVocabId: null, pronunciation: "" };
+    const updated = { 
+      ...answers, 
+      [currentVocab.id]: { 
+        ...prev, 
+        meaning: option.text,
+        meaningVocabId: option.vocabId
+      } 
+    };
     setAnswers(updated);
-    // Auto-advance to pronunciation after a brief delay
-    setTimeout(() => setStep("pronunciation"), 400);
+    // REMOVED: Auto-advance to pronunciation. User must click "Continue"
   };
 
   // ─── Pronunciation ───
@@ -377,6 +420,7 @@ function VocabPracticeContent({
   const currentAnswer = currentVocab ? answers[currentVocab.id] : undefined;
   const meaningDone = !!(currentAnswer?.meaning);
   const pronDone = !!(currentAnswer?.pronunciation);
+  const meaningCorrect = currentAnswer?.meaningVocabId === currentVocab?.id;
   const effectiveStep = meaningDone && step === "meaning" && pronDone ? "pronunciation" : step;
 
   return (
@@ -419,17 +463,27 @@ function VocabPracticeContent({
       <div className="flex items-center justify-center gap-1.5 mb-6 flex-wrap">
         {vocabs.map((v, i) => {
           const a = answers[v.id];
-          const done = a?.meaning && a?.pronunciation;
-          const partial = a?.meaning || a?.pronunciation;
+          const meaningDone = !!a?.meaning;
+          const pronDone = !!a?.pronunciation;
+          
+          const meaningCorrect = a?.meaningVocabId === v.id;
+          const pronCorrect = a?.pronunciation === "correct";
+          
+          const isWrong = (meaningDone && !meaningCorrect) || (pronDone && a?.pronunciation === "incorrect");
+          const isCorrect = meaningDone && meaningCorrect && pronDone && pronCorrect;
+          const isPartial = (meaningDone || pronDone) && !isWrong && !isCorrect;
+
           return (
             <button
               key={v.id}
               onClick={() => jumpToWord(i)}
               className={`pronunciation-dot ${
-                done
+                isCorrect
                   ? "pronunciation-dot-correct"
-                  : partial
-                  ? "pronunciation-dot-attempted"
+                  : isWrong
+                  ? "pronunciation-dot-incorrect"
+                  : isPartial
+                  ? "pronunciation-dot-partial"
                   : ""
               } ${i === currentIndex ? "pronunciation-dot-active" : ""}`}
             />
@@ -439,7 +493,7 @@ function VocabPracticeContent({
 
       {/* Word Card */}
       {currentVocab && (
-        <div className="glass p-6 mb-6 animate-fade-in-up">
+        <div className="glass p-6 mb-6 animate-fade-in-up relative">
           {/* Word counter */}
           <div className="text-center text-sm text-muted mb-4">
             {t.vocabPractice.wordProgress
@@ -459,7 +513,9 @@ function VocabPracticeContent({
             >
               1. {t.vocabPractice.meaningStep}
               {meaningDone && (
-                <span className="ml-1.5 text-success">✓</span>
+                <span className={`ml-1.5 ${meaningCorrect ? "text-success" : "text-error"}`}>
+                  {meaningCorrect ? "✓" : "✗"}
+                </span>
               )}
             </button>
             <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,9 +538,11 @@ function VocabPracticeContent({
 
           {/* Target word display */}
           <div className="text-center mb-1">
-            <span className="text-3xl font-bold">{currentVocab.word}</span>
+            <span className="text-3xl font-bold">
+              {locale === "vi" ? currentVocab.word : cleanMeaning(currentVocab.meaning)}
+            </span>
           </div>
-          {currentVocab.pronunciation && (
+          {locale === "vi" && currentVocab.pronunciation && (
             <div className="text-center text-sm text-muted mb-1">
               {currentVocab.pronunciation}
             </div>
@@ -516,8 +574,11 @@ function VocabPracticeContent({
               </p>
               <div className="space-y-2 max-w-md mx-auto">
                 {options.map((opt, i) => {
-                  const selected = currentAnswer?.meaning === opt;
-                  const isCorrectOpt = opt === currentVocab.meaning;
+                  const selected =
+                    currentAnswer?.meaningVocabId != null
+                      ? currentAnswer.meaningVocabId === opt.vocabId
+                      : currentAnswer?.meaning === opt.text;
+                  const isCorrectOpt = opt.vocabId === currentVocab.id;
                   const showResult = meaningDone;
 
                   return (
@@ -553,7 +614,7 @@ function VocabPracticeContent({
                             <div className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>
-                        <span>{opt}</span>
+                        <span>{opt.text}</span>
                         {showResult && isCorrectOpt && (
                           <span className="ml-auto text-xs">✓</span>
                         )}
@@ -565,6 +626,19 @@ function VocabPracticeContent({
                   );
                 })}
               </div>
+              {meaningDone && !pronDone && (
+                <div className="mt-6 flex justify-center animate-fade-in-up">
+                  <button
+                    onClick={() => setStep("pronunciation")}
+                    className="btn-primary"
+                  >
+                    {t.vocabPractice.pronunciationStep}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -579,14 +653,14 @@ function VocabPracticeContent({
               {meaningDone && (
                 <div
                   className={`text-center text-xs mb-4 px-3 py-1.5 rounded-full inline-flex items-center gap-1 mx-auto ${
-                    currentAnswer?.meaning === currentVocab.meaning
+                    currentAnswer?.meaningVocabId === currentVocab.id
                       ? "bg-success/10 text-success"
                       : "bg-error/10 text-error"
                   }`}
                   style={{ display: "flex", width: "fit-content", margin: "0 auto 16px" }}
                 >
-                  {currentAnswer?.meaning === currentVocab.meaning ? "✓" : "✗"}{" "}
-                  {currentAnswer?.meaning === currentVocab.meaning
+                  {currentAnswer?.meaningVocabId === currentVocab.id ? "✓" : "✗"}{" "}
+                  {currentAnswer?.meaningVocabId === currentVocab.id
                     ? t.vocabPractice.meaningCorrect
                     : t.vocabPractice.meaningIncorrect}
                 </div>
@@ -707,11 +781,31 @@ function VocabPracticeContent({
               </div>
             </div>
           )}
+
+          {/* Side Navigation (desktop) */}
+          <button
+            onClick={goPrev}
+            disabled={currentIndex === 0}
+            className="hidden md:flex items-center justify-center absolute left-3 top-1/2 -translate-y-1/2 pronunciation-nav-btn"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={goNext}
+            disabled={currentIndex === vocabs.length - 1}
+            className="hidden md:flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 pronunciation-nav-btn"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       )}
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Navigation (mobile) */}
+      <div className="md:hidden flex items-center justify-between mb-6">
         <button
           onClick={goPrev}
           disabled={currentIndex === 0}
@@ -734,8 +828,38 @@ function VocabPracticeContent({
         </button>
       </div>
 
-      {/* Actions */}
-      <div className="sticky bottom-4">
+      {/* Actions (desktop: fixed right) */}
+      <div className="hidden md:block fixed right-6 top-24 z-40">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-secondary h-10 w-10 justify-center !px-0"
+            title={t.attempt.saveProgress}
+            aria-label={t.attempt.saveProgress}
+          >
+            {saving ? (
+              <div className="spinner !w-4 !h-4 !border-2" />
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={() => setShowConfirm(true)}
+            className="btn-success h-10 inline-flex items-center justify-center gap-2 whitespace-nowrap leading-none"
+          >
+            {t.attempt.submit}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Actions (mobile: bottom) */}
+      <div className="md:hidden sticky bottom-4">
         <div className="glass p-4 flex items-center justify-between">
           <button
             onClick={handleSave}
@@ -762,8 +886,8 @@ function VocabPracticeContent({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </button>
+          </div>
         </div>
-      </div>
 
       {/* Confirm Modal */}
       {showConfirm && (

@@ -39,50 +39,77 @@ function WordOrderQuestion({
   onChange: (val: string) => void;
 }) {
   const { t } = useI18n();
-  // Derive words from correctAnswer, shuffle once
+  const buildSelectionFromSentence = useCallback(
+    (sentence: string, wordsPool: { word: string; tokenId: string }[]) => {
+      if (!sentence) return [] as string[];
+      const selectedWords = sentence.split(" ").filter(Boolean);
+      const used = new Set<string>();
+      const tokenIds: string[] = [];
+
+      for (const sw of selectedWords) {
+        const found = wordsPool.find(
+          (w) => w.word.toLowerCase() === sw.toLowerCase() && !used.has(w.tokenId)
+        );
+        if (found) {
+          tokenIds.push(found.tokenId);
+          used.add(found.tokenId);
+        }
+      }
+      return tokenIds;
+    },
+    []
+  );
+
+  // Derive words from correctAnswer, shuffle once, each token has a unique id
   const shuffledWords = useMemo(() => {
     const words = (question.correctAnswer || "").split(" ").filter(Boolean);
-    return shuffleArray(words.map((w, i) => ({ word: w, idx: i })));
-  }, [question.correctAnswer]);
+    return shuffleArray(
+      words.map((w, i) => ({
+        word: w,
+        tokenId: `${question.id}-${i}`,
+      }))
+    );
+  }, [question.correctAnswer, question.id]);
 
-  // Selected indices from the shuffled array
-  const selectedIndices: number[] = useMemo(() => {
-    if (!value) return [];
-    // value stores the built sentence; derive selected indices
-    const selectedWords = value.split(" ").filter(Boolean);
-    const used = new Set<number>();
-    const indices: number[] = [];
-    for (const sw of selectedWords) {
-      const found = shuffledWords.findIndex(
-        (w, i) => w.word.toLowerCase() === sw.toLowerCase() && !used.has(i)
-      );
-      if (found >= 0) {
-        indices.push(found);
-        used.add(found);
-      }
-    }
-    return indices;
-  }, [value, shuffledWords]);
+  // Null means "derive from external value"; array means user is interacting locally
+  const [selectedTokenIds, setSelectedTokenIds] = useState<string[] | null>(null);
+  const effectiveSelectedTokenIds = useMemo(
+    () =>
+      selectedTokenIds ?? buildSelectionFromSentence(value, shuffledWords),
+    [selectedTokenIds, buildSelectionFromSentence, value, shuffledWords]
+  );
+
+  const toSentence = useCallback(
+    (tokenIds: string[]) =>
+      tokenIds
+        .map((id) => shuffledWords.find((w) => w.tokenId === id)?.word || "")
+        .filter(Boolean)
+        .join(" "),
+    [shuffledWords]
+  );
 
   const selectWord = useCallback(
-    (idx: number) => {
-      const newSelected = [...selectedIndices, idx];
-      const sentence = newSelected.map((i) => shuffledWords[i].word).join(" ");
+    (tokenId: string) => {
+      const newSelected = [...effectiveSelectedTokenIds, tokenId];
+      setSelectedTokenIds(newSelected);
+      const sentence = toSentence(newSelected);
       onChange(sentence);
     },
-    [selectedIndices, shuffledWords, onChange]
+    [effectiveSelectedTokenIds, toSentence, onChange]
   );
 
   const removeWord = useCallback(
     (posInSelected: number) => {
-      const newSelected = selectedIndices.filter((_, i) => i !== posInSelected);
-      const sentence = newSelected.map((i) => shuffledWords[i].word).join(" ");
+      const newSelected = effectiveSelectedTokenIds.filter((_, i) => i !== posInSelected);
+      setSelectedTokenIds(newSelected);
+      const sentence = toSentence(newSelected);
       onChange(sentence);
     },
-    [selectedIndices, shuffledWords, onChange]
+    [effectiveSelectedTokenIds, toSentence, onChange]
   );
 
   const resetAll = useCallback(() => {
+    setSelectedTokenIds([]);
     onChange("");
   }, [onChange]);
 
@@ -90,24 +117,26 @@ function WordOrderQuestion({
     <div className="ml-11 space-y-3">
       {/* Answer area */}
       <div className="min-h-[52px] p-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-wrap gap-2 items-center">
-        {selectedIndices.length === 0 ? (
+        {effectiveSelectedTokenIds.length === 0 ? (
           <span className="text-sm text-muted italic">
             {t.attempt.wordOrderPlaceholder || "Nhấn vào các từ bên dưới để sắp xếp..."}
           </span>
         ) : (
-          selectedIndices.map((wordIdx, posIdx) => (
+          effectiveSelectedTokenIds.map((tokenId, posIdx) => (
             <button
-              key={`sel-${posIdx}`}
+              key={`sel-${tokenId}-${posIdx}`}
               onClick={() => removeWord(posIdx)}
-              className="px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm font-medium border border-primary/30 hover:bg-error/20 hover:text-error hover:border-error/30 transition-all"
+              className="group relative px-3 py-1.5 rounded-lg bg-primary/20 text-primary text-sm font-medium border border-primary/30 hover:bg-error/20 hover:text-error hover:border-error/30 transition-all"
               title={t.attempt.wordOrderRemove || "Nhấn để bỏ"}
             >
-              {shuffledWords[wordIdx].word}
-              <span className="ml-1.5 text-xs opacity-60">×</span>
+              <span className="transition-opacity group-hover:opacity-35">
+                {shuffledWords.find((w) => w.tokenId === tokenId)?.word || ""}
+              </span>
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-semibold opacity-0 group-hover:opacity-80 transition-opacity">×</span>
             </button>
           ))
         )}
-        {selectedIndices.length > 0 && (
+        {effectiveSelectedTokenIds.length > 0 && (
           <button
             onClick={resetAll}
             className="ml-auto text-xs text-muted hover:text-error transition-colors px-2 py-1"
@@ -120,12 +149,12 @@ function WordOrderQuestion({
 
       {/* Available words */}
       <div className="flex flex-wrap gap-2">
-        {shuffledWords.map((item, idx) => {
-          const isUsed = selectedIndices.includes(idx);
+        {shuffledWords.map((item) => {
+          const isUsed = effectiveSelectedTokenIds.includes(item.tokenId);
           return (
             <button
-              key={`word-${idx}`}
-              onClick={() => !isUsed && selectWord(idx)}
+              key={`word-${item.tokenId}`}
+              onClick={() => !isUsed && selectWord(item.tokenId)}
               disabled={isUsed}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                 isUsed
@@ -411,8 +440,38 @@ function AttemptContent({
         ))}
       </div>
 
-      {/* Actions */}
-      <div className="sticky bottom-4 mt-6">
+      {/* Actions (desktop: fixed right) */}
+      <div className="hidden md:block fixed right-6 top-24 z-40">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-secondary h-10 w-10 justify-center !px-0"
+            title={t.attempt.saveProgress}
+            aria-label={t.attempt.saveProgress}
+          >
+            {saving ? (
+              <div className="spinner !w-4 !h-4 !border-2" />
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={() => setShowConfirm(true)}
+            className="btn-success h-10 inline-flex items-center justify-center gap-2 whitespace-nowrap leading-none"
+          >
+            {t.attempt.submit}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Actions (mobile: bottom) */}
+      <div className="md:hidden sticky bottom-4 mt-6">
         <div className="glass p-4 flex items-center justify-between">
           <button
             onClick={handleSave}
@@ -439,8 +498,8 @@ function AttemptContent({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </button>
+          </div>
         </div>
-      </div>
 
       {/* Confirm Modal */}
       {showConfirm && (

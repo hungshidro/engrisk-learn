@@ -15,6 +15,13 @@
       "when": 1776228162774,
       "tag": "0001_bright_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776849013420,
+      "tag": "0002_real_shinobi_shaw",
+      "breakpoints": true
     }
   ]
 }

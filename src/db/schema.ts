@@ -119,6 +119,7 @@ export const exerciseAttempts = pgTable("exercise_attempts", {
   totalQuestions: integer("total_questions").notNull().default(0),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Vocabulary Attempts
@@ -136,6 +137,7 @@ export const vocabularyAttempts = pgTable("vocabulary_attempts", {
   totalItems: integer("total_items").notNull().default(0),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Friendships

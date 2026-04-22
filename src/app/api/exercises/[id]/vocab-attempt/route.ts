@@ -4,6 +4,11 @@ import { vocabularyAttempts, vocabularies } from "@/db/schema";
 import { auth } from "@/auth";
 import { eq, and } from "drizzle-orm";
 
+// GET: Verification endpoint
+export async function GET() {
+  return NextResponse.json({ status: "ready" });
+}
+
 // POST: Start or resume vocabulary attempt
 export async function POST(
   request: Request,
@@ -79,7 +84,7 @@ export async function PUT(
 
     const [updated] = await db
       .update(vocabularyAttempts)
-      .set({ answers })
+      .set({ answers, updatedAt: new Date() })
       .where(
         and(
           eq(vocabularyAttempts.id, attemptId),
@@ -118,14 +123,26 @@ export async function PATCH(
       where: eq(vocabularies.exerciseId, exerciseId),
     });
 
+    const normalizeString = (str: string) => 
+      str?.toLowerCase().trim().replace(/\s+/g, " ") || "";
+
+    const cleanMeaning = (m: string) => {
+      if (!m) return "";
+      return m.split(" / ")[0].split(" - ")[0].split(" (")[0].trim();
+    };
+
     // Calculate score
     let score = 0;
     for (const vocab of vocabList) {
       const answer = answers[vocab.id];
       if (!answer) continue;
 
-      // Check meaning
-      if (answer.meaning === vocab.meaning) {
+      // Check meaning (Prioritize ID-based comparison)
+      const meaningCorrect = 
+        (answer.meaningVocabId && answer.meaningVocabId === vocab.id) ||
+        (!answer.meaningVocabId && normalizeString(answer.meaning) === normalizeString(cleanMeaning(vocab.meaning)));
+
+      if (meaningCorrect) {
         score++;
       }
 
@@ -142,6 +159,7 @@ export async function PATCH(
         score,
         status: "completed",
         completedAt: new Date(),
+        updatedAt: new Date(),
       })
       .where(
         and(
